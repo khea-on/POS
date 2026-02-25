@@ -1,0 +1,128 @@
+import { useEffect, useMemo, useState } from "react";
+import api from "../services/api";
+
+function Reports() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadReports = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await api.get("/orders");
+        setOrders(res.data || []);
+      } catch (err) {
+        const apiError = err.response?.data;
+        if (typeof apiError === "string" && apiError.trim()) {
+          setError(apiError);
+        } else {
+          setError("Failed to load reports.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReports();
+  }, []);
+
+  const report = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const todayOrders = orders.filter((order) => {
+      const created = new Date(order.createdAtUtc);
+      return created >= startOfToday && created < endOfToday;
+    });
+
+    const monthOrders = orders.filter((order) => {
+      const created = new Date(order.createdAtUtc);
+      return created >= startOfMonth && created < endOfToday;
+    });
+
+    const totalFromOrders = (orderList) =>
+      orderList.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
+
+    const itemsMap = new Map();
+    orders.forEach((order) => {
+      (order.items || []).forEach((item) => {
+        const key = `${item.productId}-${item.size || "Medium"}`;
+        const existing = itemsMap.get(key);
+        const productName = item.product?.name || `Product #${item.productId}`;
+        const size = item.size || "Medium";
+
+        if (!existing) {
+          itemsMap.set(key, {
+            name: productName,
+            size,
+            qty: Number(item.quantity || 0),
+            total: Number(item.lineTotal || 0),
+          });
+          return;
+        }
+
+        existing.qty += Number(item.quantity || 0);
+        existing.total += Number(item.lineTotal || 0);
+      });
+    });
+
+    const topItems = Array.from(itemsMap.values())
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5);
+
+    return {
+      dailySales: totalFromOrders(todayOrders),
+      dailyOrders: todayOrders.length,
+      monthlySales: totalFromOrders(monthOrders),
+      monthlyOrders: monthOrders.length,
+      topItems,
+    };
+  }, [orders]);
+
+  return (
+    <div className="reports-grid">
+      <div className="page-card report-card">
+        <h2>Daily Report</h2>
+        <p className="dashboard-value">${report.dailySales.toFixed(2)}</p>
+        <p className="muted-text">{report.dailyOrders} orders today</p>
+      </div>
+
+      <div className="page-card report-card">
+        <h2>Monthly Sales Report</h2>
+        <p className="dashboard-value">${report.monthlySales.toFixed(2)}</p>
+        <p className="muted-text">{report.monthlyOrders} orders this month</p>
+      </div>
+
+      <div className="page-card report-card report-full">
+        <h2>Top Selling Items</h2>
+        {report.topItems.length === 0 ? (
+          <p>No items sold yet.</p>
+        ) : (
+          report.topItems.map((item, index) => (
+            <div className="list-row report-item-row" key={`${item.name}-${item.size}-${index}`}>
+              <span>
+                {item.name} ({item.size})
+              </span>
+              <span>
+                Qty {item.qty} | ${item.total.toFixed(2)}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+
+      {(loading || error) && (
+        <div className="page-card report-card report-full">
+          {loading ? <p>Loading reports...</p> : null}
+          {error ? <p className="form-error">{error}</p> : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default Reports;
