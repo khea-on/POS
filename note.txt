@@ -1,0 +1,13 @@
+# 1) Build React
+cd C:\Users\ROG\Documents\ReactJs\POS
+npm install
+npm run build
+
+# 2) Copy to IIS folder
+robocopy .\dist C:\inetpub\wwwroot\POS /MIR
+
+# 3) Ensure IIS app exists (optional)
+%windir%\System32\inetsrv\appcmd add app /site.name:"Default Web Site" /path:/POS /physicalPath:"C:\inetpub\wwwroot\POS"
+
+# 4) Restart IIS
+iisreset
