@@ -11,3 +11,7 @@ robocopy .\dist C:\inetpub\wwwroot\POS /MIR
 
 # 4) Restart IIS
 iisreset
+
+
+npm run lint
+npm run build

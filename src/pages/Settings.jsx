@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../services/api";
+import useI18n from "../i18n/useI18n";
+import AppIcon from "../components/common/AppIcon";
 
 function Settings() {
+  const { t } = useI18n();
   const [imageUrl, setImageUrl] = useState(localStorage.getItem("imageUrl") || "");
   const [profile, setProfile] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -11,7 +14,7 @@ function Settings() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const loadSettingsData = async () => {
+  const loadSettingsData = useCallback(async () => {
     setDataLoading(true);
     setError("");
 
@@ -30,16 +33,16 @@ function Settings() {
       if (typeof apiError === "string" && apiError.trim()) {
         setError(apiError);
       } else {
-        setError("Failed to load settings data.");
+        setError(t("settings.failedToLoadSettingsData"));
       }
     } finally {
       setDataLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     loadSettingsData();
-  }, []);
+  }, [loadSettingsData]);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -80,9 +83,9 @@ function Settings() {
       });
       localStorage.setItem("imageUrl", res.data.imageUrl || "");
       window.dispatchEvent(new Event("user-profile-updated"));
-      setMessage("User image updated.");
+      setMessage(t("settings.userImageUpdated"));
     } catch (err) {
-      setError(err.response?.data || "Failed to update user image.");
+      setError(err.response?.data || t("settings.failedToUpdateUserImage"));
     } finally {
       setLoading(false);
     }
@@ -90,78 +93,86 @@ function Settings() {
 
   return (
     <div className="page-card">
-      <h2>Settings</h2>
+      <h2>{t("settings.title")}</h2>
       <div className="settings-grid">
         <div className="page-card settings-card">
-          <h3>Company Name</h3>
+          <h3>{t("settings.companyName")}</h3>
           <p className="dashboard-value">StarDark POS</p>
-          <p className="muted-text">System environment: Production-ready local setup</p>
+          <p className="muted-text">{t("settings.systemEnvironment")}</p>
         </div>
 
         <div className="page-card settings-card">
-          <h3>Tax Configuration</h3>
+          <h3>{t("settings.taxConfiguration")}</h3>
           <p className="dashboard-value">{stats.todayTaxRate.toFixed(2)}%</p>
           <p className="muted-text">
-            Today effective tax | All-time: {stats.allTimeTaxRate.toFixed(2)}%
+            {t("settings.todayEffectiveTax", { allTime: stats.allTimeTaxRate.toFixed(2) })}
           </p>
         </div>
 
         <div className="page-card settings-card">
-          <h3>User Management</h3>
+          <h3>{t("settings.userManagement")}</h3>
           {typeof profile?.usersCount === "number" ? (
             <>
               <p className="dashboard-value">{profile.usersCount}</p>
               <p className="muted-text">
-                Admins: {profile?.adminsCount ?? 0} | Current: {profile?.username || "-"}
+                {t("settings.adminsCurrent", {
+                  admins: profile?.adminsCount ?? 0,
+                  username: profile?.username || "-",
+                })}
               </p>
             </>
           ) : (
             <>
-              <p className="dashboard-value">Restricted</p>
-              <p className="muted-text">Only Admin can view user/account totals.</p>
+              <p className="dashboard-value">{t("settings.restricted")}</p>
+              <p className="muted-text">{t("settings.adminOnlyTotals")}</p>
             </>
           )}
         </div>
 
         <div className="page-card settings-card">
-          <h3>Inventory Summary</h3>
+          <h3>{t("settings.inventorySummary")}</h3>
           <p className="dashboard-value">{stats.totalProducts}</p>
           <p className="muted-text">
-            Active: {stats.activeProducts} | Low stock: {stats.lowStockProducts}
+            {t("settings.activeLowStock", {
+              active: stats.activeProducts,
+              lowStock: stats.lowStockProducts,
+            })}
           </p>
         </div>
 
         <div className="page-card settings-card">
-          <h3>Security</h3>
-          <p className="dashboard-value">Enabled</p>
+          <h3>{t("settings.security")}</h3>
+          <p className="dashboard-value">{t("settings.enabled")}</p>
           <p className="muted-text">
-            JWT auth, role-based access controls, password complexity checks, and masked payment
-            references for sensitive data protection.
+            {t("settings.securityDescription")}
           </p>
         </div>
       </div>
 
       <div className="settings-image-section">
-        <h3>User Image</h3>
+        <h3>{t("settings.userImage")}</h3>
         <input
           placeholder="https://example.com/avatar.jpg"
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
         />
         <button
-          className="primary-btn"
+          className="primary-btn btn-with-icon"
           type="button"
           onClick={handleSaveImage}
           disabled={loading}
         >
-          {loading ? "Saving..." : "Save User Image"}
+          <AppIcon name="save" />
+          {loading ? t("common.saving") : t("settings.saveUserImage")}
         </button>
         {message ? <p className="success-text">{message}</p> : null}
         {error ? <p className="form-error">{error}</p> : null}
-        {dataLoading ? <p className="muted-text">Loading settings data...</p> : null}
+        {dataLoading ? <p className="muted-text">{t("settings.loadingSettingsData")}</p> : null}
       </div>
     </div>
   );
 }
 
 export default Settings;
+
+

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
+import useI18n from "../../i18n/useI18n";
+import AppIcon from "../common/AppIcon";
 
 const getItemImageUrl = (item) => {
   if (item?.imageUrl) {
@@ -11,6 +13,11 @@ const getItemImageUrl = (item) => {
 };
 
 const SIZE_OPTIONS = ["Small", "Medium", "Large"];
+const SIZE_SHORT_LABELS = {
+  Small: "productGrid.sizeS",
+  Medium: "productGrid.sizeM",
+  Large: "productGrid.sizeL",
+};
 
 const getPriceBySize = (item, size) => {
   if (size === "Small") {
@@ -25,6 +32,7 @@ const getPriceBySize = (item, size) => {
 };
 
 function ProductGrid({ onAddItem }) {
+  const { t } = useI18n();
   const [products, setProducts] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState({});
   const [search, setSearch] = useState("");
@@ -40,9 +48,9 @@ function ProductGrid({ onAddItem }) {
       .get("/products")
       .then((res) => setProducts(res.data))
       .catch(() => {
-        setError("Could not load products from API.");
+        setError(t("productGrid.couldNotLoadProducts"));
       });
-  }, []);
+  }, [t]);
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -94,34 +102,34 @@ function ProductGrid({ onAddItem }) {
 
   return (
     <div className="panel">
-      <h3>Products</h3>
+      <h3>{t("productGrid.products")}</h3>
       <div className="filter-toolbar">
         <input
           className="filter-input"
-          placeholder="Search item or SKU..."
+          placeholder={t("productGrid.searchItemOrSku")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="all">All</option>
+          <option value="active">{t("productGrid.active")}</option>
+          <option value="inactive">{t("productGrid.inactive")}</option>
+          <option value="all">{t("productGrid.all")}</option>
         </select>
         <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
-          <option value="inStock">In Stock</option>
-          <option value="all">All Stock</option>
+          <option value="inStock">{t("productGrid.inStock")}</option>
+          <option value="all">{t("productGrid.allStock")}</option>
         </select>
         <select value={sort} onChange={(e) => setSort(e.target.value)}>
-          <option value="name_asc">Name A-Z</option>
-          <option value="name_desc">Name Z-A</option>
-          <option value="price_asc">Price Low-High</option>
-          <option value="price_desc">Price High-Low</option>
+          <option value="name_asc">{t("productGrid.nameAz")}</option>
+          <option value="name_desc">{t("productGrid.nameZa")}</option>
+          <option value="price_asc">{t("productGrid.priceLowHigh")}</option>
+          <option value="price_desc">{t("productGrid.priceHighLow")}</option>
         </select>
         <input
           className="filter-input filter-mini"
           type="number"
           step="0.01"
-          placeholder="Min $"
+          placeholder={t("productGrid.minPrice")}
           value={minPrice}
           onChange={(e) => setMinPrice(e.target.value)}
         />
@@ -129,7 +137,7 @@ function ProductGrid({ onAddItem }) {
           className="filter-input filter-mini"
           type="number"
           step="0.01"
-          placeholder="Max $"
+          placeholder={t("productGrid.maxPrice")}
           value={maxPrice}
           onChange={(e) => setMaxPrice(e.target.value)}
         />
@@ -137,7 +145,7 @@ function ProductGrid({ onAddItem }) {
       {error && <p className="muted-text">{error}</p>}
 
       {filteredProducts.length === 0 ? (
-        <p>No products found from API.</p>
+        <p>{t("productGrid.noProductsFound")}</p>
       ) : (
         <div className="product-card-grid">
           {filteredProducts.map((p) => (
@@ -150,9 +158,9 @@ function ProductGrid({ onAddItem }) {
               <div className="product-card-body">
                 <h4>{p.name}</h4>
                 <div className="size-price-list">
-                  <div>S: ${getPriceBySize(p, "Small").toFixed(2)}</div>
-                  <div>M: ${getPriceBySize(p, "Medium").toFixed(2)}</div>
-                  <div>L: ${getPriceBySize(p, "Large").toFixed(2)}</div>
+                  <div>{t("productGrid.sizeS")}: ${getPriceBySize(p, "Small").toFixed(2)}</div>
+                  <div>{t("productGrid.sizeM")}: ${getPriceBySize(p, "Medium").toFixed(2)}</div>
+                  <div>{t("productGrid.sizeL")}: ${getPriceBySize(p, "Large").toFixed(2)}</div>
                 </div>
                 <div className="size-selector">
                   {SIZE_OPTIONS.map((size) => (
@@ -167,12 +175,12 @@ function ProductGrid({ onAddItem }) {
                         }))
                       }
                     >
-                      {size}
+                      {t(SIZE_SHORT_LABELS[size])}
                     </button>
                   ))}
                 </div>
                 <button
-                  className="primary-btn"
+                  className="primary-btn btn-with-icon"
                   type="button"
                   onClick={() => {
                     const size = selectedSizes[p.id] || "Medium";
@@ -184,7 +192,8 @@ function ProductGrid({ onAddItem }) {
                     });
                   }}
                 >
-                  Add
+                  <AppIcon name="plus" />
+                  {t("productGrid.add")}
                 </button>
               </div>
             </div>
@@ -196,3 +205,5 @@ function ProductGrid({ onAddItem }) {
 }
 
 export default ProductGrid;
+
+

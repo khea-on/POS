@@ -1,4 +1,14 @@
+import useI18n from "../../i18n/useI18n";
+import AppIcon from "../common/AppIcon";
+
 function Cart({ items, totalAmount, onCheckout, onRemoveItem, checkoutLoading }) {
+  const { t } = useI18n();
+  const getSizeLabel = (size) => {
+    if (size === "Small") return t("common.sizeSmall");
+    if (size === "Large") return t("common.sizeLarge");
+    return t("common.sizeMedium");
+  };
+
   const getItemImageUrl = (item) => {
     if (item?.imageUrl) {
       return item.imageUrl;
@@ -10,9 +20,9 @@ function Cart({ items, totalAmount, onCheckout, onRemoveItem, checkoutLoading })
 
   return (
     <div className="panel">
-      <h3>Cart</h3>
+      <h3>{t("cart.title")}</h3>
       {items.length === 0 ? (
-        <p>No items yet</p>
+        <p>{t("cart.noItemsYet")}</p>
       ) : (
         items.map((item) => (
           <div key={item.cartKey || item.id} className="list-row cart-row">
@@ -23,33 +33,40 @@ function Cart({ items, totalAmount, onCheckout, onRemoveItem, checkoutLoading })
             />
             <div>
               <div>
-                {item.name} ({item.selectedSize || "Medium"})
+                {item.name} ({getSizeLabel(item.selectedSize || "Medium")})
               </div>
               <div>
-                x {item.quantity} - ${(Number(item.price || 0) * item.quantity).toFixed(2)}
+                {t("cart.itemLine", {
+                  quantity: item.quantity,
+                  amount: (Number(item.price || 0) * item.quantity).toFixed(2),
+                })}
               </div>
             </div>
             <button
-              className="cancel-btn"
+              className="cancel-btn btn-with-icon"
               type="button"
               onClick={() => onRemoveItem(item.cartKey || item.id)}
             >
-              Cancel
+              <AppIcon name="cancel" />
+              {t("common.cancel")}
             </button>
           </div>
         ))
       )}
-      <p className="cart-total">Total: ${totalAmount.toFixed(2)}</p>
+      <p className="cart-total">{t("cart.total", { amount: totalAmount.toFixed(2) })}</p>
       <button
-        className="primary-btn"
+        className="primary-btn btn-with-icon"
         type="button"
         onClick={onCheckout}
         disabled={checkoutLoading}
       >
-        {checkoutLoading ? "Checking out..." : "Checkout"}
+        <AppIcon name="checkout" />
+        {checkoutLoading ? t("cart.checkingOut") : t("cart.checkout")}
       </button>
     </div>
   );
 }
 
 export default Cart;
+
+

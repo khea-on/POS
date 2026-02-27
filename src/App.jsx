@@ -45,6 +45,7 @@ import ProductManagement from "./pages/ProductManagement";
 import Register from "./pages/Register";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import InventoryManagement from "./pages/InventoryManagement";
 
 function App() {
   return (
@@ -66,6 +67,14 @@ function App() {
             element={(
               <RoleProtectedRoute allowedRoles={["Admin"]}>
                 <ProductManagement />
+              </RoleProtectedRoute>
+            )}
+          />
+          <Route
+            path="/inventory-management"
+            element={(
+              <RoleProtectedRoute allowedRoles={["Admin"]}>
+                <InventoryManagement />
               </RoleProtectedRoute>
             )}
           />

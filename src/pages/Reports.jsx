@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../services/api";
+import useI18n from "../i18n/useI18n";
 
 function Reports() {
+  const { t } = useI18n();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -18,7 +20,7 @@ function Reports() {
         if (typeof apiError === "string" && apiError.trim()) {
           setError(apiError);
         } else {
-          setError("Failed to load reports.");
+          setError(t("reports.failedToLoadReports"));
         }
       } finally {
         setLoading(false);
@@ -26,7 +28,7 @@ function Reports() {
     };
 
     loadReports();
-  }, []);
+  }, [t]);
 
   const report = useMemo(() => {
     const now = new Date();
@@ -86,21 +88,21 @@ function Reports() {
   return (
     <div className="reports-grid">
       <div className="page-card report-card">
-        <h2>Daily Report</h2>
+        <h2>{t("reports.dailyReport")}</h2>
         <p className="dashboard-value">${report.dailySales.toFixed(2)}</p>
-        <p className="muted-text">{report.dailyOrders} orders today</p>
+        <p className="muted-text">{t("reports.ordersToday", { count: report.dailyOrders })}</p>
       </div>
 
       <div className="page-card report-card">
-        <h2>Monthly Sales Report</h2>
+        <h2>{t("reports.monthlySalesReport")}</h2>
         <p className="dashboard-value">${report.monthlySales.toFixed(2)}</p>
-        <p className="muted-text">{report.monthlyOrders} orders this month</p>
+        <p className="muted-text">{t("reports.ordersThisMonth", { count: report.monthlyOrders })}</p>
       </div>
 
       <div className="page-card report-card report-full">
-        <h2>Top Selling Items</h2>
+        <h2>{t("reports.topSellingItems")}</h2>
         {report.topItems.length === 0 ? (
-          <p>No items sold yet.</p>
+          <p>{t("reports.noItemsSoldYet")}</p>
         ) : (
           report.topItems.map((item, index) => (
             <div className="list-row report-item-row" key={`${item.name}-${item.size}-${index}`}>
@@ -108,7 +110,7 @@ function Reports() {
                 {item.name} ({item.size})
               </span>
               <span>
-                Qty {item.qty} | ${item.total.toFixed(2)}
+                {t("reports.qty")} {item.qty} | ${item.total.toFixed(2)}
               </span>
             </div>
           ))
@@ -117,7 +119,7 @@ function Reports() {
 
       {(loading || error) && (
         <div className="page-card report-card report-full">
-          {loading ? <p>Loading reports...</p> : null}
+          {loading ? <p>{t("reports.loadingReports")}</p> : null}
           {error ? <p className="form-error">{error}</p> : null}
         </div>
       )}
@@ -126,3 +128,5 @@ function Reports() {
 }
 
 export default Reports;
+
+

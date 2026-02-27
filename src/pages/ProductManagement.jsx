@@ -1,7 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../services/api";
+import useI18n from "../i18n/useI18n";
+import AppIcon from "../components/common/AppIcon";
+
+const defaultProductForm = {
+  name: "",
+  sku: "",
+  imageUrl: "",
+  smallPrice: "",
+  mediumPrice: "",
+  largePrice: "",
+  stockQuantity: "0",
+  isActive: true,
+};
 
 function ProductManagement() {
+  const { t } = useI18n();
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -9,37 +23,35 @@ function ProductManagement() {
   const [sort, setSort] = useState("name_asc");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [productForm, setProductForm] = useState({
-    name: "",
-    sku: "",
-    imageUrl: "",
-    smallPrice: "",
-    mediumPrice: "",
-    largePrice: "",
-    stockQuantity: "0",
-    isActive: true,
-  });
+  const [productForm, setProductForm] = useState(defaultProductForm);
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [stockAdjustments, setStockAdjustments] = useState({});
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     setDataLoading(true);
     setError("");
     try {
       const res = await api.get("/products");
       setProducts(res.data || []);
     } catch (err) {
-      setError(err.response?.data || "Failed to load products.");
+      setError(err.response?.data || t("productManagement.failedToLoadProducts"));
     } finally {
       setDataLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [loadProducts]);
+
+  const resetProductForm = () => {
+    setProductForm(defaultProductForm);
+    setEditingProductId(null);
+  };
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -96,38 +108,89 @@ function ProductManagement() {
     return result;
   }, [products, search, activeFilter, stockFilter, minPrice, maxPrice, sort]);
 
-  const handleCreateProduct = async (event) => {
+  const handleSubmitProduct = async (event) => {
     event.preventDefault();
     setLoading(true);
     setError("");
     setMessage("");
-    try {
-      await api.post("/products", {
-        name: productForm.name.trim(),
-        sku: productForm.sku.trim(),
-        imageUrl: productForm.imageUrl.trim() || null,
-        price: Number(productForm.mediumPrice || 0),
-        smallPrice: Number(productForm.smallPrice || 0),
-        mediumPrice: Number(productForm.mediumPrice || 0),
-        largePrice: Number(productForm.largePrice || 0),
-        stockQuantity: Number(productForm.stockQuantity || 0),
-        isActive: productForm.isActive,
-      });
 
-      setProductForm({
-        name: "",
-        sku: "",
-        imageUrl: "",
-        smallPrice: "",
-        mediumPrice: "",
-        largePrice: "",
-        stockQuantity: "",
-        isActive: true,
-      });
-      setMessage("Product created.");
+    const payload = {
+      name: productForm.name.trim(),
+      sku: productForm.sku.trim(),
+      imageUrl: productForm.imageUrl.trim() || null,
+      price: Number(productForm.mediumPrice || 0),
+      smallPrice: Number(productForm.smallPrice || 0),
+      mediumPrice: Number(productForm.mediumPrice || 0),
+      largePrice: Number(productForm.largePrice || 0),
+      stockQuantity: Number(productForm.stockQuantity || 0),
+      isActive: productForm.isActive,
+    };
+
+    try {
+      if (editingProductId) {
+        await api.put(`/products/${editingProductId}`, payload);
+        setMessage(t("productManagement.productUpdated"));
+      } else {
+        await api.post("/products", payload);
+        setMessage(t("productManagement.productCreated"));
+      }
+
+      resetProductForm();
       await loadProducts();
     } catch (err) {
-      setError(err.response?.data || "Failed to create product.");
+      setError(
+        err.response?.data
+          || (editingProductId
+            ? t("productManagement.failedToUpdateProduct")
+            : t("productManagement.failedToCreateProduct"))
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartEdit = (product) => {
+    setError("");
+    setMessage("");
+    setEditingProductId(product.id);
+    setProductForm({
+      name: product.name || "",
+      sku: product.sku || "",
+      imageUrl: product.imageUrl || "",
+      smallPrice: String(Number(product.smallPrice ?? product.price ?? 0)),
+      mediumPrice: String(Number(product.mediumPrice ?? product.price ?? 0)),
+      largePrice: String(Number(product.largePrice ?? product.price ?? 0)),
+      stockQuantity: String(Number(product.stockQuantity ?? 0)),
+      isActive: Boolean(product.isActive),
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setError("");
+    setMessage("");
+    resetProductForm();
+  };
+
+  const handleAddStock = async (productId) => {
+    const qty = Number.parseInt(stockAdjustments[productId] || "", 10);
+    if (!Number.isFinite(qty) || qty <= 0) {
+      setError(t("productManagement.invalidStockToAdd"));
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setMessage("");
+    try {
+      await api.post(`/products/${productId}/adjust-stock`, {
+        quantityChange: qty,
+        reason: "Manual stock add from Product Management",
+      });
+      setMessage(t("productManagement.stockAdded", { qty }));
+      setStockAdjustments((prev) => ({ ...prev, [productId]: "" }));
+      await loadProducts();
+    } catch (err) {
+      setError(err.response?.data || t("productManagement.failedToAddStock"));
     } finally {
       setLoading(false);
     }
@@ -139,10 +202,13 @@ function ProductManagement() {
     setMessage("");
     try {
       await api.delete(`/products/${id}`);
-      setMessage("Product deleted.");
+      setMessage(t("productManagement.productDeleted"));
+      if (editingProductId === id) {
+        resetProductForm();
+      }
       await loadProducts();
     } catch (err) {
-      setError(err.response?.data || "Failed to delete product.");
+      setError(err.response?.data || t("productManagement.failedToDeleteProduct"));
     } finally {
       setLoading(false);
     }
@@ -150,38 +216,38 @@ function ProductManagement() {
 
   return (
     <div className="page-card">
-      <h2>Product Management</h2>
+      <h2>{t("productManagement.title")}</h2>
       <div className="settings-image-section">
         <div className="filter-toolbar">
           <input
             className="filter-input"
-            placeholder="Search product or SKU..."
+            placeholder={t("productManagement.searchProductOrSku")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="all">{t("productManagement.allStatus")}</option>
+            <option value="active">{t("productManagement.active")}</option>
+            <option value="inactive">{t("productManagement.inactive")}</option>
           </select>
           <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
-            <option value="all">All Stock</option>
-            <option value="inStock">In Stock Only</option>
+            <option value="all">{t("productManagement.allStock")}</option>
+            <option value="inStock">{t("productManagement.inStockOnly")}</option>
           </select>
           <select value={sort} onChange={(e) => setSort(e.target.value)}>
-            <option value="name_asc">Name A-Z</option>
-            <option value="name_desc">Name Z-A</option>
-            <option value="price_asc">Price Low-High</option>
-            <option value="price_desc">Price High-Low</option>
-            <option value="stock_desc">Stock High-Low</option>
-            <option value="stock_asc">Stock Low-High</option>
-            <option value="newest">Newest</option>
+            <option value="name_asc">{t("productManagement.nameAz")}</option>
+            <option value="name_desc">{t("productManagement.nameZa")}</option>
+            <option value="price_asc">{t("productManagement.priceLowHigh")}</option>
+            <option value="price_desc">{t("productManagement.priceHighLow")}</option>
+            <option value="stock_desc">{t("productManagement.stockHighLow")}</option>
+            <option value="stock_asc">{t("productManagement.stockLowHigh")}</option>
+            <option value="newest">{t("productManagement.newest")}</option>
           </select>
           <input
             className="filter-input filter-mini"
             type="number"
             step="0.01"
-            placeholder="Min $"
+            placeholder={t("productManagement.minPrice")}
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
           />
@@ -189,34 +255,35 @@ function ProductManagement() {
             className="filter-input filter-mini"
             type="number"
             step="0.01"
-            placeholder="Max $"
+            placeholder={t("productManagement.maxPrice")}
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
           />
         </div>
 
-        <form className="product-form" onSubmit={handleCreateProduct}>
+        <h3>{editingProductId ? t("productManagement.editProduct") : t("productManagement.addProduct")}</h3>
+        <form className="product-form" onSubmit={handleSubmitProduct}>
           <input
-            placeholder="Name"
+            placeholder={t("productManagement.name")}
             value={productForm.name}
             onChange={(e) => setProductForm((prev) => ({ ...prev, name: e.target.value }))}
             required
           />
           <input
-            placeholder="SKU"
+            placeholder={t("productManagement.sku")}
             value={productForm.sku}
             onChange={(e) => setProductForm((prev) => ({ ...prev, sku: e.target.value }))}
             required
           />
           <input
-            placeholder="Image URL"
+            placeholder={t("productManagement.imageUrl")}
             value={productForm.imageUrl}
             onChange={(e) => setProductForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
           />
           <input
             type="number"
             step="0.01"
-            placeholder="Small Price"
+            placeholder={t("productManagement.smallPrice")}
             value={productForm.smallPrice}
             onChange={(e) => setProductForm((prev) => ({ ...prev, smallPrice: e.target.value }))}
             required
@@ -224,7 +291,7 @@ function ProductManagement() {
           <input
             type="number"
             step="0.01"
-            placeholder="Medium Price"
+            placeholder={t("productManagement.mediumPrice")}
             value={productForm.mediumPrice}
             onChange={(e) => setProductForm((prev) => ({ ...prev, mediumPrice: e.target.value }))}
             required
@@ -232,14 +299,14 @@ function ProductManagement() {
           <input
             type="number"
             step="0.01"
-            placeholder="Large Price"
+            placeholder={t("productManagement.largePrice")}
             value={productForm.largePrice}
             onChange={(e) => setProductForm((prev) => ({ ...prev, largePrice: e.target.value }))}
             required
           />
           <input
             type="number"
-            placeholder="Stock"
+            placeholder={t("productManagement.stock")}
             value={productForm.stockQuantity}
             onChange={(e) => setProductForm((prev) => ({ ...prev, stockQuantity: e.target.value }))}
             required
@@ -250,16 +317,34 @@ function ProductManagement() {
               checked={productForm.isActive}
               onChange={(e) => setProductForm((prev) => ({ ...prev, isActive: e.target.checked }))}
             />{" "}
-            Active
+            {t("productManagement.activeLabel")}
           </label>
-          <button className="primary-btn" type="submit" disabled={loading}>
-            {loading ? "Saving..." : "Add Product"}
-          </button>
+          <div className="product-form-actions">
+            <button className="primary-btn btn-with-icon" type="submit" disabled={loading}>
+              <AppIcon name={editingProductId ? "save" : "plus"} />
+              {loading
+                ? t("productManagement.saving")
+                : editingProductId
+                  ? t("productManagement.updateProduct")
+                  : t("productManagement.addProduct")}
+            </button>
+            {editingProductId ? (
+              <button
+                className="screen-btn btn-with-icon"
+                type="button"
+                onClick={handleCancelEdit}
+                disabled={loading}
+              >
+                <AppIcon name="cancel" />
+                {t("productManagement.cancelEdit")}
+              </button>
+            ) : null}
+          </div>
         </form>
 
         {message ? <p className="success-text">{message}</p> : null}
         {error ? <p className="form-error">{error}</p> : null}
-        {dataLoading ? <p className="muted-text">Loading products...</p> : null}
+        {dataLoading ? <p className="muted-text">{t("productManagement.loadingProducts")}</p> : null}
 
         <div className="product-admin-list">
           {filteredProducts.map((product) => (
@@ -271,18 +356,52 @@ function ProductManagement() {
                 <div className="muted-text">
                   S ${Number(product.smallPrice ?? product.price).toFixed(2)} | M $
                   {Number(product.mediumPrice ?? product.price).toFixed(2)} | L $
-                  {Number(product.largePrice ?? product.price).toFixed(2)} | Stock{" "}
+                  {Number(product.largePrice ?? product.price).toFixed(2)} | {t("productManagement.stockLabel")}{" "}
                   {Number(product.stockQuantity || 0)}
                 </div>
               </div>
-              <button
-                className="cancel-btn"
-                type="button"
-                disabled={loading}
-                onClick={() => handleDeleteProduct(product.id)}
-              >
-                Delete
-              </button>
+              <div className="product-admin-actions">
+                <input
+                  className="filter-input filter-mini stock-adjust-input"
+                  type="number"
+                  min="1"
+                  placeholder={t("productManagement.stockQuantityToAdd")}
+                  value={stockAdjustments[product.id] || ""}
+                  onChange={(e) =>
+                    setStockAdjustments((prev) => ({
+                      ...prev,
+                      [product.id]: e.target.value,
+                    }))
+                  }
+                />
+                <button
+                  className="primary-btn btn-with-icon"
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleAddStock(product.id)}
+                >
+                  <AppIcon name="stock" />
+                  {t("productManagement.addStock")}
+                </button>
+                <button
+                  className="screen-btn btn-with-icon"
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleStartEdit(product)}
+                >
+                  <AppIcon name="edit" />
+                  {t("productManagement.edit")}
+                </button>
+                <button
+                  className="cancel-btn btn-with-icon"
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleDeleteProduct(product.id)}
+                >
+                  <AppIcon name="delete" />
+                  {t("common.delete")}
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -292,3 +411,5 @@ function ProductManagement() {
 }
 
 export default ProductManagement;
+
+

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../services/api";
+import useI18n from "../i18n/useI18n";
 
 function Dashboard() {
+  const { t } = useI18n();
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,7 @@ function Dashboard() {
         if (typeof apiError === "string" && apiError.trim()) {
           setError(apiError);
         } else {
-          setError("Failed to load dashboard data.");
+          setError(t("dashboard.failedToLoadDashboardData"));
         }
       } finally {
         setLoading(false);
@@ -32,7 +34,7 @@ function Dashboard() {
     };
 
     loadDashboard();
-  }, []);
+  }, [t]);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -72,37 +74,40 @@ function Dashboard() {
     <div className="dashboard-grid">
       <div className="page-card dashboard-card">
         <div className="card-icon" aria-hidden="true">💰</div>
-        <h2>Sales Today</h2>
+        <h2>{t("dashboard.salesToday")}</h2>
         <p className="dashboard-value">${stats.salesToday.toFixed(2)}</p>
-        <p className="muted-text">{stats.ordersToday} orders today</p>
+        <p className="muted-text">{t("dashboard.ordersToday", { count: stats.ordersToday })}</p>
       </div>
 
       <div className="page-card dashboard-card">
         <div className="card-icon" aria-hidden="true">📈</div>
-        <h2>Total Sales</h2>
+        <h2>{t("dashboard.totalSales")}</h2>
         <p className="dashboard-value">${stats.totalSales.toFixed(2)}</p>
-        <p className="muted-text">All-time completed sales</p>
+        <p className="muted-text">{t("dashboard.allTimeCompletedSales")}</p>
       </div>
 
       <div className="page-card dashboard-card">
         <div className="card-icon" aria-hidden="true">🧾</div>
-        <h2>Total Orders</h2>
+        <h2>{t("dashboard.totalOrders")}</h2>
         <p className="dashboard-value">{stats.totalOrders}</p>
-        <p className="muted-text">All orders from API</p>
+        <p className="muted-text">{t("dashboard.allOrdersFromApi")}</p>
       </div>
 
       <div className="page-card dashboard-card">
         <div className="card-icon" aria-hidden="true">📦</div>
-        <h2>Products</h2>
+        <h2>{t("dashboard.products")}</h2>
         <p className="dashboard-value">{stats.totalProducts}</p>
         <p className="muted-text">
-          {stats.activeProducts} active, {stats.lowStockProducts} low stock
+          {t("dashboard.activeLowStock", {
+            active: stats.activeProducts,
+            lowStock: stats.lowStockProducts,
+          })}
         </p>
       </div>
 
       {(loading || error) && (
         <div className="page-card dashboard-card dashboard-status">
-          {loading ? <p>Loading dashboard data...</p> : null}
+          {loading ? <p>{t("dashboard.loadingDashboardData")}</p> : null}
           {error ? <p className="form-error">{error}</p> : null}
         </div>
       )}
@@ -111,3 +116,5 @@ function Dashboard() {
 }
 
 export default Dashboard;
+
+
