@@ -849,6 +849,93 @@ body {
   min-width: 96px;
 }
 
+.inventory-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.inventory-summary-card {
+  min-height: 128px;
+}
+
+.inventory-sections {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
+  gap: 12px;
+}
+
+.inventory-low-stock-list,
+.inventory-list {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.inventory-low-stock-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inventory-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inventory-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inventory-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inventory-badge {
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 2px 10px;
+  font-size: 0.78rem;
+}
+
+.inventory-badge.in-stock {
+  color: var(--success);
+  border-color: var(--success-border);
+  background: color-mix(in srgb, var(--success-bg) 70%, transparent);
+}
+
+.inventory-badge.low-stock {
+  color: #ffd497;
+  border-color: rgba(255, 177, 82, 0.45);
+  background: rgba(184, 113, 34, 0.25);
+}
+
+.inventory-badge.out-stock {
+  color: var(--danger);
+  border-color: var(--danger-border);
+  background: color-mix(in srgb, var(--danger-bg) 60%, transparent);
+}
+
+.inventory-adjust-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.inventory-adjust-form .filter-input {
+  min-width: 150px;
+}
+
 .settings-image-section input {
   width: 100%;
   border: 1px solid var(--border);
@@ -994,6 +1081,23 @@ body {
     justify-content: flex-start;
   }
 
+  .inventory-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inventory-sections {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-row {
+    flex-direction: column;
+  }
+
+  .inventory-adjust-form {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .pos-grid {
     grid-template-columns: 1fr;
   }
@@ -1024,6 +1128,10 @@ body {
   }
 
   .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-summary-grid {
     grid-template-columns: 1fr;
   }
 

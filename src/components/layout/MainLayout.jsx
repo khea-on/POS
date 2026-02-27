@@ -8,6 +8,7 @@ const menuItems = [
   { labelKey: "nav.dashboard", to: "/dashboard", icon: "dashboard", roles: ["Admin", "Cashier"] },
   { labelKey: "nav.item", to: "/pos", icon: "item", roles: ["Admin", "Cashier"] },
   { labelKey: "nav.productManagement", to: "/product-management", icon: "product", roles: ["Admin"] },
+  { labelKey: "nav.inventoryManagement", to: "/inventory-management", icon: "inventory", roles: ["Admin"] },
   { labelKey: "nav.reports", to: "/reports", icon: "reports", roles: ["Admin"] },
   { labelKey: "nav.settings", to: "/settings", icon: "settings", roles: ["Admin", "Cashier"] },
 ];
@@ -99,6 +100,17 @@ function MainLayout() {
           <path d="M12 20V5" />
           <path d="M19 20v-7" />
           <path d="M3 20h18" />
+        </svg>
+      );
+    }
+
+    if (iconName === "inventory") {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <rect x="3.5" y="4" width="17" height="16" rx="2.2" />
+          <path d="M8 8h8" />
+          <path d="M8 12h5" />
+          <path d="m14 16 2 2 3-4" />
         </svg>
       );
     }
