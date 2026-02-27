@@ -410,15 +410,17 @@ function POS() {
       )}
 
       {activeScreen === "items" ? (
-        <div className="pos-grid">
+        <div className={`pos-grid ${cartItems.length === 0 ? "pos-grid-products-only" : ""}`}>
           <ProductGrid onAddItem={handleAddItem} />
-        <Cart
-          items={cartItems}
-          totalAmount={totalAmount}
-          onCheckout={handleCheckout}
-          onRemoveItem={handleRemoveItem}
-          checkoutLoading={checkingOut}
-        />
+          {cartItems.length > 0 ? (
+            <Cart
+              items={cartItems}
+              totalAmount={totalAmount}
+              onCheckout={handleCheckout}
+              onRemoveItem={handleRemoveItem}
+              checkoutLoading={checkingOut}
+            />
+          ) : null}
         </div>
       ) : (
         <>

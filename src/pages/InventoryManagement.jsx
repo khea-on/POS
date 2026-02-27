@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
@@ -20,14 +21,11 @@ const getStockStatus = (stockQuantity, threshold) => {
 
 function InventoryManagement() {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [lowStockThreshold, setLowStockThreshold] = useState(DEFAULT_LOW_STOCK_THRESHOLD);
-  const [summary, setSummary] = useState(null);
-  const [lowStockProducts, setLowStockProducts] = useState([]);
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState("all");
-  const [sort, setSort] = useState("stock_asc");
-  const [stockDrafts, setStockDrafts] = useState({});
   const [loading, setLoading] = useState(true);
   const [adjustingProductId, setAdjustingProductId] = useState(null);
   const [message, setMessage] = useState("");
@@ -38,18 +36,16 @@ function InventoryManagement() {
     setError("");
 
     try {
-      const [summaryRes, lowStockRes, productsRes] = await Promise.all([
+      const [summaryRes, productsRes] = await Promise.all([
         api.get("/products/inventory-summary", {
           params: { lowStockThreshold },
-        }),
-        api.get("/products/low-stock", {
-          params: { threshold: lowStockThreshold },
         }),
         api.get("/products"),
       ]);
 
-      setSummary(summaryRes.data || null);
-      setLowStockProducts(lowStockRes.data || []);
+      if (summaryRes.data?.lowStockThreshold >= 0) {
+        setLowStockThreshold(Number(summaryRes.data.lowStockThreshold));
+      }
       setProducts(productsRes.data || []);
     } catch (err) {
       const apiError = err.response?.data;
@@ -95,41 +91,10 @@ function InventoryManagement() {
       return true;
     });
 
-    filtered.sort((a, b) => {
-      const aName = String(a.name || "");
-      const bName = String(b.name || "");
-      const aStock = Number(a.stockQuantity || 0);
-      const bStock = Number(b.stockQuantity || 0);
+    return filtered.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+  }, [products, search, stockFilter, lowStockThreshold]);
 
-      if (sort === "name_asc") return aName.localeCompare(bName);
-      if (sort === "name_desc") return bName.localeCompare(aName);
-      if (sort === "stock_desc") return bStock - aStock;
-      return aStock - bStock;
-    });
-
-    return filtered;
-  }, [products, search, stockFilter, sort, lowStockThreshold]);
-
-  const updateDraft = (productId, field, value) => {
-    setStockDrafts((prev) => ({
-      ...prev,
-      [productId]: {
-        ...prev[productId],
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleAdjustStock = async (productId) => {
-    const draft = stockDrafts[productId] || {};
-    const quantityChange = Number.parseInt(String(draft.quantityChange || ""), 10);
-    const reason = String(draft.reason || "").trim();
-
-    if (!Number.isInteger(quantityChange) || quantityChange === 0) {
-      setError(t("inventoryManagement.invalidQuantityChange"));
-      return;
-    }
-
+  const handleQuickAdjustStock = async (productId, quantityChange) => {
     setAdjustingProductId(productId);
     setError("");
     setMessage("");
@@ -137,15 +102,10 @@ function InventoryManagement() {
     try {
       await api.post(`/products/${productId}/adjust-stock`, {
         quantityChange,
-        reason: reason || null,
+        reason: quantityChange > 0 ? "Quick increase from inventory page" : "Quick decrease from inventory page",
       });
 
-      const signedQty = quantityChange > 0 ? `+${quantityChange}` : String(quantityChange);
-      setMessage(t("inventoryManagement.stockUpdated", { qty: signedQty }));
-      setStockDrafts((prev) => ({
-        ...prev,
-        [productId]: { quantityChange: "", reason: "" },
-      }));
+      setMessage(t("inventoryManagement.stockUpdated"));
       await loadInventory();
     } catch (err) {
       const apiError = err.response?.data;
@@ -159,158 +119,153 @@ function InventoryManagement() {
     }
   };
 
+  const getCategory = (product) => {
+    const sku = String(product.sku || "");
+    if (!sku.includes("-")) {
+      return t("inventoryManagement.generalCategory");
+    }
+
+    return sku.split("-")[0];
+  };
+
+  const getStatusLabel = (stockQuantity) => {
+    const status = getStockStatus(stockQuantity, lowStockThreshold);
+    if (status === "out") {
+      return t("inventoryManagement.outOfStock");
+    }
+    if (status === "low") {
+      return t("inventoryManagement.lowStock");
+    }
+    return t("inventoryManagement.inStock");
+  };
+
+  const getStatusClassName = (stockQuantity) => {
+    const status = getStockStatus(stockQuantity, lowStockThreshold);
+    if (status === "out") {
+      return "out-stock";
+    }
+    if (status === "low") {
+      return "low-stock";
+    }
+    return "in-stock";
+  };
+
+  const getItemImageUrl = (product) => {
+    if (product?.imageUrl) {
+      return product.imageUrl;
+    }
+
+    const label = encodeURIComponent(product?.name || "Item");
+    return `https://placehold.co/64x64?text=${label}`;
+  };
+
   return (
-    <div className="page-card">
-      <h2>{t("inventoryManagement.title")}</h2>
+    <section className="inventory-modern-page">
+      <div className="inventory-modern-toolbar">
+        <div className="inventory-modern-title">
+          <h2>{t("inventoryManagement.title")}</h2>
+          <p>{t("inventoryManagement.subtitle")}</p>
+        </div>
 
-      <div className="filter-toolbar">
-        <input
-          className="filter-input"
-          placeholder={t("inventoryManagement.searchByNameOrSku")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
-          <option value="all">{t("inventoryManagement.allStock")}</option>
-          <option value="inStock">{t("inventoryManagement.inStockOnly")}</option>
-          <option value="lowStock">{t("inventoryManagement.lowStockOnly")}</option>
-          <option value="outOfStock">{t("inventoryManagement.outOfStockOnly")}</option>
-        </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value)}>
-          <option value="stock_asc">{t("inventoryManagement.stockLowHigh")}</option>
-          <option value="stock_desc">{t("inventoryManagement.stockHighLow")}</option>
-          <option value="name_asc">{t("inventoryManagement.nameAz")}</option>
-          <option value="name_desc">{t("inventoryManagement.nameZa")}</option>
-        </select>
-        <input
-          className="filter-input filter-mini"
-          type="number"
-          min="0"
-          value={lowStockThreshold}
-          onChange={(e) => {
-            const parsed = Number.parseInt(e.target.value, 10);
-            setLowStockThreshold(Number.isInteger(parsed) && parsed >= 0 ? parsed : 0);
-          }}
-          aria-label={t("inventoryManagement.lowStockThreshold")}
-        />
-        <button className="screen-btn btn-with-icon" type="button" onClick={loadInventory}>
-          <AppIcon name="stock" />
-          {t("inventoryManagement.refresh")}
-        </button>
-      </div>
+        <div className="inventory-modern-controls">
+          <label className="inventory-search" aria-label={t("inventoryManagement.searchByNameOrSku")}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              placeholder={t("inventoryManagement.searchByNameOrSku")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
 
-      <div className="inventory-summary-grid">
-        <div className="page-card inventory-summary-card">
-          <h3>{t("inventoryManagement.totalProducts")}</h3>
-          <p className="dashboard-value">{summary?.totalProducts ?? 0}</p>
-        </div>
-        <div className="page-card inventory-summary-card">
-          <h3>{t("inventoryManagement.activeProducts")}</h3>
-          <p className="dashboard-value">{summary?.activeProducts ?? 0}</p>
-        </div>
-        <div className="page-card inventory-summary-card">
-          <h3>{t("inventoryManagement.inStockProducts")}</h3>
-          <p className="dashboard-value">{summary?.inStockProducts ?? 0}</p>
-        </div>
-        <div className="page-card inventory-summary-card">
-          <h3>{t("inventoryManagement.lowStockProducts")}</h3>
-          <p className="dashboard-value">{summary?.lowStockProducts ?? 0}</p>
-        </div>
-        <div className="page-card inventory-summary-card">
-          <h3>{t("inventoryManagement.outOfStockProducts")}</h3>
-          <p className="dashboard-value">{summary?.outOfStockProducts ?? 0}</p>
+          <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
+            <option value="all">{t("inventoryManagement.allStock")}</option>
+            <option value="inStock">{t("inventoryManagement.inStockOnly")}</option>
+            <option value="lowStock">{t("inventoryManagement.lowStockOnly")}</option>
+            <option value="outOfStock">{t("inventoryManagement.outOfStockOnly")}</option>
+          </select>
+
+          <button
+            className="inventory-add-btn"
+            type="button"
+            onClick={() => navigate("/product-management")}
+          >
+            <AppIcon name="plus" />
+            {t("inventoryManagement.addProduct")}
+          </button>
         </div>
       </div>
 
       {message ? <p className="success-text">{message}</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
-      {loading ? <p className="muted-text">{t("inventoryManagement.loadingInventory")}</p> : null}
 
-      <div className="inventory-sections">
-        <div className="page-card">
-          <h3>
-            {t("inventoryManagement.lowStockListTitle", {
-              threshold: lowStockThreshold,
-            })}
-          </h3>
-          {lowStockProducts.length === 0 ? (
-            <p className="muted-text">{t("inventoryManagement.noLowStockProducts")}</p>
-          ) : (
-            <div className="inventory-low-stock-list">
-              {lowStockProducts.map((product) => (
-                <div className="list-row inventory-low-stock-item" key={`low-${product.id}`}>
-                  <span>
-                    {product.name} ({product.sku})
-                  </span>
-                  <strong>{Number(product.stockQuantity || 0)}</strong>
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="inventory-modern-table">
+        <div className="inventory-table-head">
+          <span>{t("inventoryManagement.columnProduct")}</span>
+          <span>{t("inventoryManagement.columnCategory")}</span>
+          <span>{t("inventoryManagement.columnPrice")}</span>
+          <span>{t("inventoryManagement.columnStock")}</span>
+          <span>{t("inventoryManagement.columnStatus")}</span>
+          <span>{t("inventoryManagement.columnActions")}</span>
         </div>
 
-        <div className="page-card">
-          <h3>{t("inventoryManagement.stockAdjustments")}</h3>
-          {filteredProducts.length === 0 ? (
-            <p className="muted-text">{t("inventoryManagement.noProductsMatched")}</p>
-          ) : (
-            <div className="inventory-list">
-              {filteredProducts.map((product) => {
-                const stock = Number(product.stockQuantity || 0);
-                const status = getStockStatus(stock, lowStockThreshold);
-                const badgeClass = status === "in" ? "in-stock" : status === "low" ? "low-stock" : "out-stock";
-                const statusText = status === "in"
-                  ? t("inventoryManagement.inStock")
-                  : status === "low"
-                    ? t("inventoryManagement.lowStock")
-                    : t("inventoryManagement.outOfStock");
-                const draft = stockDrafts[product.id] || {};
-                const isBusy = adjustingProductId === product.id;
+        {loading ? <p className="muted-text">{t("inventoryManagement.loadingInventory")}</p> : null}
 
-                return (
-                  <div className="list-row inventory-row" key={product.id}>
-                    <div className="inventory-row-main">
-                      <div>
-                        {product.name} ({product.sku})
-                      </div>
-                      <div className="inventory-row-meta muted-text">
-                        <span>{t("inventoryManagement.currentStock", { stock })}</span>
-                        <span className={`inventory-badge ${badgeClass}`}>{statusText}</span>
-                      </div>
-                    </div>
-
-                    <div className="inventory-adjust-form">
-                      <input
-                        className="filter-input filter-mini"
-                        type="number"
-                        placeholder={t("inventoryManagement.quantityChange")}
-                        value={draft.quantityChange || ""}
-                        onChange={(e) => updateDraft(product.id, "quantityChange", e.target.value)}
-                      />
-                      <input
-                        className="filter-input"
-                        placeholder={t("inventoryManagement.reasonOptional")}
-                        value={draft.reason || ""}
-                        onChange={(e) => updateDraft(product.id, "reason", e.target.value)}
-                      />
-                      <button
-                        className="primary-btn btn-with-icon"
-                        type="button"
-                        disabled={isBusy}
-                        onClick={() => handleAdjustStock(product.id)}
-                      >
-                        <AppIcon name="stock" />
-                        {isBusy ? t("inventoryManagement.updating") : t("inventoryManagement.updateStock")}
-                      </button>
+        {!loading && filteredProducts.length === 0 ? (
+          <p className="muted-text">{t("inventoryManagement.noProductsMatched")}</p>
+        ) : (
+          <div className="inventory-table-body">
+            {filteredProducts.map((product) => {
+              const stock = Number(product.stockQuantity || 0);
+              const isBusy = adjustingProductId === product.id;
+              return (
+                <div className="inventory-table-row" key={product.id}>
+                  <div className="inventory-product-cell">
+                    <img src={getItemImageUrl(product)} alt={product.name} />
+                    <div>
+                      <div className="inventory-product-name">{product.name}</div>
+                      <div className="inventory-product-sku">{product.sku}</div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  <div className="inventory-row-text">{getCategory(product)}</div>
+                  <div className="inventory-row-text">
+                    ${Number(product.mediumPrice ?? product.price ?? 0).toFixed(2)}
+                  </div>
+                  <div className="inventory-row-text">{stock}</div>
+                  <div>
+                    <span className={`inventory-status-pill ${getStatusClassName(stock)}`}>
+                      {getStatusLabel(stock)}
+                    </span>
+                  </div>
+                  <div className="inventory-actions">
+                    <button
+                      type="button"
+                      className="inventory-action-btn"
+                      disabled={isBusy || stock <= 0}
+                      onClick={() => handleQuickAdjustStock(product.id, -1)}
+                      aria-label={t("inventoryManagement.decreaseStock")}
+                    >
+                      -
+                    </button>
+                    <button
+                      type="button"
+                      className="inventory-action-btn"
+                      disabled={isBusy}
+                      onClick={() => handleQuickAdjustStock(product.id, 1)}
+                      aria-label={t("inventoryManagement.increaseStock")}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </div>
+    </section>
   );
 }
 

@@ -5,9 +5,8 @@ import AppIcon from "../common/AppIcon";
 import useI18n from "../../i18n/useI18n";
 
 const menuItems = [
-  { labelKey: "nav.dashboard", to: "/dashboard", icon: "dashboard", roles: ["Admin", "Cashier"] },
   { labelKey: "nav.item", to: "/pos", icon: "item", roles: ["Admin", "Cashier"] },
-  { labelKey: "nav.productManagement", to: "/product-management", icon: "product", roles: ["Admin"] },
+  { labelKey: "nav.dashboard", to: "/dashboard", icon: "dashboard", roles: ["Admin", "Cashier"] },
   { labelKey: "nav.inventoryManagement", to: "/inventory-management", icon: "inventory", roles: ["Admin"] },
   { labelKey: "nav.reports", to: "/reports", icon: "reports", roles: ["Admin"] },
   { labelKey: "nav.settings", to: "/settings", icon: "settings", roles: ["Admin", "Cashier"] },
@@ -20,7 +19,7 @@ function MainLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
   const [profileImage, setProfileImage] = useState(localStorage.getItem("imageUrl") || "");
   const [theme, setTheme] = useState(
-    localStorage.getItem("theme") === "light" ? "light" : "dark"
+    localStorage.getItem("theme") === "dark" ? "dark" : "light"
   );
   const userRole = localStorage.getItem("role") || "Cashier";
 
