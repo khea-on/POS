@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import api from "../services/api";
+import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
 
@@ -35,8 +35,8 @@ function ProductManagement() {
     setDataLoading(true);
     setError("");
     try {
-      const res = await api.get("/products");
-      setProducts(res.data || []);
+      const data = await gateway.products.getAll();
+      setProducts(data || []);
     } catch (err) {
       setError(err.response?.data || t("productManagement.failedToLoadProducts"));
     } finally {
@@ -128,10 +128,10 @@ function ProductManagement() {
 
     try {
       if (editingProductId) {
-        await api.put(`/products/${editingProductId}`, payload);
+        await gateway.products.update(editingProductId, payload);
         setMessage(t("productManagement.productUpdated"));
       } else {
-        await api.post("/products", payload);
+        await gateway.products.create(payload);
         setMessage(t("productManagement.productCreated"));
       }
 
@@ -182,7 +182,7 @@ function ProductManagement() {
     setError("");
     setMessage("");
     try {
-      await api.post(`/products/${productId}/adjust-stock`, {
+      await gateway.products.adjustStock(productId, {
         quantityChange: qty,
         reason: "Manual stock add from Product Management",
       });
@@ -201,7 +201,7 @@ function ProductManagement() {
     setError("");
     setMessage("");
     try {
-      await api.delete(`/products/${id}`);
+      await gateway.products.remove(id);
       setMessage(t("productManagement.productDeleted"));
       if (editingProductId === id) {
         resetProductForm();

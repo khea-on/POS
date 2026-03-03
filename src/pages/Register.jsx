@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../services/api";
+import gateway from "../services/gateway";
 import AppIcon from "../components/common/AppIcon";
 import LanguageSwitcher from "../components/common/LanguageSwitcher";
 import useI18n from "../i18n/useI18n";
@@ -34,22 +34,22 @@ function Register() {
 
     try {
       const cleanUsername = username.trim();
-      await api.post("/auth/register", {
+      await gateway.auth.register({
         username: cleanUsername,
         password,
         role: "Cashier",
         imageUrl: imageUrl.trim() || null,
       });
 
-      const loginRes = await api.post("/auth/login", {
+      const loginData = await gateway.auth.login({
         username: cleanUsername,
         password,
       });
 
-      localStorage.setItem("token", loginRes.data.token);
-      localStorage.setItem("username", loginRes.data.username || cleanUsername);
-      localStorage.setItem("role", loginRes.data.role || "Cashier");
-      localStorage.setItem("imageUrl", loginRes.data.imageUrl || "");
+      localStorage.setItem("token", loginData.token);
+      localStorage.setItem("username", loginData.username || cleanUsername);
+      localStorage.setItem("role", loginData.role || "Cashier");
+      localStorage.setItem("imageUrl", loginData.imageUrl || "");
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data || t("register.registerFailed"));

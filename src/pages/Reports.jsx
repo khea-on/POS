@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import api from "../services/api";
+import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 
 function Reports() {
@@ -13,8 +13,8 @@ function Reports() {
       setLoading(true);
       setError("");
       try {
-        const res = await api.get("/orders");
-        setOrders(res.data || []);
+        const data = await gateway.orders.getAll();
+        setOrders(data || []);
       } catch (err) {
         const apiError = err.response?.data;
         if (typeof apiError === "string" && apiError.trim()) {

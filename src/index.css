@@ -1065,9 +1065,124 @@ body {
   cursor: pointer;
 }
 
+.inventory-action-btn .app-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.inventory-edit-action-btn {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--border));
+}
+
 .inventory-action-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.inventory-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.inventory-modal-card {
+  width: min(700px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: linear-gradient(165deg, var(--panel-strong), color-mix(in srgb, var(--panel-strong) 84%, #000 16%));
+  box-shadow: 0 20px 40px var(--shadow-strong);
+  padding: 18px;
+}
+
+.inventory-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.inventory-modal-header h3 {
+  margin: 0;
+}
+
+.inventory-modal-header .muted-text {
+  margin: 4px 0 0;
+  line-height: 1.35;
+}
+
+.inventory-modal-form {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.inventory-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inventory-modal-field-wide {
+  grid-column: 1 / -1;
+}
+
+.inventory-modal-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.inventory-modal-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--input-bg) 82%, transparent);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.inventory-modal-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+  transform: translateY(-1px);
+}
+
+.inventory-modal-input::placeholder {
+  color: color-mix(in srgb, var(--muted) 82%, transparent);
+}
+
+.inventory-modal-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--input-bg) 72%, transparent);
+}
+
+.inventory-modal-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.inventory-modal-actions {
+  grid-column: 1 / -1;
+  margin-top: 2px;
 }
 
 .inventory-summary-grid {
@@ -1396,6 +1511,20 @@ body {
 
   .inventory-search {
     width: 100%;
+  }
+
+  .inventory-modal-card {
+    padding: 14px;
+  }
+
+  .inventory-modal-form {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .inventory-modal-field,
+  .inventory-modal-field-wide {
+    grid-column: 1 / -1;
   }
 
   .inventory-summary-grid {

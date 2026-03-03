@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import api from "../../services/api";
+import gateway from "../../services/gateway";
 import useI18n from "../../i18n/useI18n";
 import AppIcon from "../common/AppIcon";
 
@@ -44,9 +44,9 @@ function ProductGrid({ onAddItem }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api
-      .get("/products")
-      .then((res) => setProducts(res.data))
+    gateway.products
+      .getAll()
+      .then((data) => setProducts(data || []))
       .catch(() => {
         setError(t("productGrid.couldNotLoadProducts"));
       });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import api from "../services/api";
+import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 
 function Dashboard() {
@@ -14,13 +14,13 @@ function Dashboard() {
       setLoading(true);
       setError("");
       try {
-        const [ordersRes, productsRes] = await Promise.all([
-          api.get("/orders"),
-          api.get("/products"),
+        const [ordersData, productsData] = await Promise.all([
+          gateway.orders.getAll(),
+          gateway.products.getAll(),
         ]);
 
-        setOrders(ordersRes.data || []);
-        setProducts(productsRes.data || []);
+        setOrders(ordersData || []);
+        setProducts(productsData || []);
       } catch (err) {
         const apiError = err.response?.data;
         if (typeof apiError === "string" && apiError.trim()) {

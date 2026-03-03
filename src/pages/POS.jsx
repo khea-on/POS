@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ProductGrid from "../components/pos/ProductGrid";
 import Cart from "../components/pos/Cart";
-import api from "../services/api";
+import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
 
@@ -28,8 +28,8 @@ function POS() {
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
     try {
-      const res = await api.get("/orders");
-      setOrders(res.data || []);
+      const data = await gateway.orders.getAll();
+      setOrders(data || []);
     } catch {
       setError(t("pos.couldNotLoadOrderList"));
     } finally {
@@ -145,7 +145,7 @@ function POS() {
 
     setCheckingOut(true);
     try {
-      const res = await api.post("/orders/checkout", {
+      const createdOrder = await gateway.orders.checkout({
         taxPercent: 10,
         items: cartItems.map((item) => ({
           productId: item.id,
@@ -161,8 +161,7 @@ function POS() {
         ],
       });
 
-      const createdOrder = res.data || null;
-      setLastCheckoutOrder(createdOrder);
+      setLastCheckoutOrder(createdOrder || null);
       setCartItems([]);
       const successMessage = createdOrder?.id
         ? t("pos.checkoutCompleteWithOrder", { id: createdOrder.id })
@@ -348,7 +347,7 @@ function POS() {
     setError("");
     setSuccess("");
     try {
-      await api.post(`/orders/${orderId}/cancel`);
+      await gateway.orders.cancel(orderId);
       setSuccess(t("pos.orderCancelled", { id: orderId }));
       await loadOrders();
     } catch (err) {

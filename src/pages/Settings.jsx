@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import api from "../services/api";
+import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
 
@@ -19,15 +19,15 @@ function Settings() {
     setError("");
 
     try {
-      const [meRes, ordersRes, productsRes] = await Promise.all([
-        api.get("/auth/me"),
-        api.get("/orders"),
-        api.get("/products"),
+      const [profileData, ordersData, productsData] = await Promise.all([
+        gateway.auth.me(),
+        gateway.orders.getAll(),
+        gateway.products.getAll(),
       ]);
 
-      setProfile(meRes.data || null);
-      setOrders(ordersRes.data || []);
-      setProducts(productsRes.data || []);
+      setProfile(profileData || null);
+      setOrders(ordersData || []);
+      setProducts(productsData || []);
     } catch (err) {
       const apiError = err.response?.data;
       if (typeof apiError === "string" && apiError.trim()) {
@@ -78,10 +78,10 @@ function Settings() {
     setMessage("");
 
     try {
-      const res = await api.put("/auth/profile-image", {
+      const data = await gateway.auth.updateProfileImage({
         imageUrl: imageUrl.trim() || null,
       });
-      localStorage.setItem("imageUrl", res.data.imageUrl || "");
+      localStorage.setItem("imageUrl", data.imageUrl || "");
       window.dispatchEvent(new Event("user-profile-updated"));
       setMessage(t("settings.userImageUpdated"));
     } catch (err) {

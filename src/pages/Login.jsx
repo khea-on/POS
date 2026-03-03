@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../services/api";
+import gateway from "../services/gateway";
 import AppIcon from "../components/common/AppIcon";
 import LanguageSwitcher from "../components/common/LanguageSwitcher";
 import useI18n from "../i18n/useI18n";
@@ -25,14 +25,14 @@ function Login() {
     setLoading(true);
 
     try {
-      const res = await api.post("/auth/login", {
+      const data = await gateway.auth.login({
         username: username.trim(),
         password,
       });
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("username", res.data.username || username.trim());
-      localStorage.setItem("role", res.data.role || "");
-      localStorage.setItem("imageUrl", res.data.imageUrl || "");
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("username", data.username || username.trim());
+      localStorage.setItem("role", data.role || "");
+      localStorage.setItem("imageUrl", data.imageUrl || "");
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data || t("login.loginFailed"));
