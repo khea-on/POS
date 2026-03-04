@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "dev:local5012": "vite --mode local5012",
+    "dev:iis5000": "vite --mode iis5000",
+    "build:iis": "vite build --mode iis",
+    "build:iisroot": "vite build --mode iisroot",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

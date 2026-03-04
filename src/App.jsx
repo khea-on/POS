@@ -48,8 +48,11 @@ import Settings from "./pages/Settings";
 import InventoryManagement from "./pages/InventoryManagement";
 
 function App() {
+  const baseUrl = import.meta.env.BASE_URL || "/";
+  const routerBase = baseUrl === "/" ? undefined : baseUrl.replace(/\/$/, "");
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={routerBase}>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />

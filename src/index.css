@@ -37,6 +37,10 @@
   --overlay-bg: rgba(0, 0, 0, 0.45);
   --login-overlay: rgba(8, 12, 18, 0.62);
   --shadow-strong: rgba(0, 0, 0, 0.34);
+  --motion-fast: 0.16s;
+  --motion-base: 0.28s;
+  --motion-slow: 0.46s;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -91,10 +95,58 @@ body {
     radial-gradient(circle at 10% 10%, var(--bg-glow-1), transparent 40%),
     radial-gradient(circle at 85% 0%, var(--bg-glow-2), transparent 45%),
     var(--bg);
+  background-size: 120% 120%, 140% 140%, auto;
+  animation: backgroundDrift 18s ease-in-out infinite alternate;
 }
 
 #root {
   min-height: 100vh;
+}
+
+@keyframes backgroundDrift {
+  from {
+    background-position: 0% 0%, 100% 0%, 0 0;
+  }
+
+  to {
+    background-position: 8% 4%, 92% 8%, 0 0;
+  }
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeSlideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes softPulseIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .stardark-shell {
@@ -111,6 +163,7 @@ body {
   overflow: hidden;
   transition: width 0.2s ease, padding 0.2s ease, border-color 0.2s ease;
   z-index: 12;
+  animation: fadeSlideRight var(--motion-slow) var(--ease-standard);
 }
 
 .stardark-sidebar.collapsed {
@@ -187,7 +240,10 @@ body {
   color: var(--text);
   padding: 10px 12px;
   border-radius: 10px;
-  transition: 0.2s ease;
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
 }
 
 .menu-link-content {
@@ -215,6 +271,7 @@ body {
 
 .menu-link:hover {
   background: var(--menu-hover);
+  transform: translateX(3px);
 }
 
 .menu-link.active {
@@ -272,6 +329,14 @@ body {
   padding: 0;
   border-radius: 8px;
   cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+
+.menu-toggle:hover {
+  transform: translateY(-1px);
 }
 
 .menu-icon {
@@ -288,6 +353,10 @@ body {
   color: var(--text-on-accent);
   background: linear-gradient(90deg, var(--accent-2), var(--accent));
   cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    filter var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
 }
 
 .cancel-btn {
@@ -297,6 +366,26 @@ body {
   color: var(--text-on-accent);
   background: var(--danger-bg);
   cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    filter var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.logout-btn:hover,
+.primary-btn:hover,
+.login-card button:hover,
+.cancel-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 8px 16px color-mix(in srgb, var(--shadow-strong) 72%, transparent);
+}
+
+.logout-btn:active,
+.primary-btn:active,
+.login-card button:active,
+.cancel-btn:active {
+  transform: translateY(0);
 }
 
 .page-content {
@@ -309,10 +398,84 @@ body {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 18px;
+  transition:
+    transform var(--motion-base) var(--ease-standard),
+    box-shadow var(--motion-base) var(--ease-standard),
+    border-color var(--motion-base) var(--ease-standard);
+}
+
+.page-card:hover,
+.panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 24px color-mix(in srgb, var(--shadow-strong) 58%, transparent);
 }
 
 .page-card h2 {
   margin-top: 0;
+}
+
+.dashboard-grid > .page-card,
+.reports-grid > .page-card,
+.settings-grid > .page-card,
+.inventory-table-body .inventory-table-row,
+.product-card-grid .product-card,
+.product-admin-list .product-admin-row {
+  opacity: 0;
+  animation: fadeSlideUp var(--motion-slow) var(--ease-standard) forwards;
+}
+
+.dashboard-grid > .page-card:nth-child(1),
+.reports-grid > .page-card:nth-child(1),
+.settings-grid > .page-card:nth-child(1),
+.inventory-table-body .inventory-table-row:nth-child(1),
+.product-card-grid .product-card:nth-child(1),
+.product-admin-list .product-admin-row:nth-child(1) {
+  animation-delay: 0.03s;
+}
+
+.dashboard-grid > .page-card:nth-child(2),
+.reports-grid > .page-card:nth-child(2),
+.settings-grid > .page-card:nth-child(2),
+.inventory-table-body .inventory-table-row:nth-child(2),
+.product-card-grid .product-card:nth-child(2),
+.product-admin-list .product-admin-row:nth-child(2) {
+  animation-delay: 0.07s;
+}
+
+.dashboard-grid > .page-card:nth-child(3),
+.reports-grid > .page-card:nth-child(3),
+.settings-grid > .page-card:nth-child(3),
+.inventory-table-body .inventory-table-row:nth-child(3),
+.product-card-grid .product-card:nth-child(3),
+.product-admin-list .product-admin-row:nth-child(3) {
+  animation-delay: 0.11s;
+}
+
+.dashboard-grid > .page-card:nth-child(4),
+.reports-grid > .page-card:nth-child(4),
+.settings-grid > .page-card:nth-child(4),
+.inventory-table-body .inventory-table-row:nth-child(4),
+.product-card-grid .product-card:nth-child(4),
+.product-admin-list .product-admin-row:nth-child(4) {
+  animation-delay: 0.15s;
+}
+
+.dashboard-grid > .page-card:nth-child(5),
+.reports-grid > .page-card:nth-child(5),
+.settings-grid > .page-card:nth-child(5),
+.inventory-table-body .inventory-table-row:nth-child(5),
+.product-card-grid .product-card:nth-child(5),
+.product-admin-list .product-admin-row:nth-child(5) {
+  animation-delay: 0.19s;
+}
+
+.dashboard-grid > .page-card:nth-child(6),
+.reports-grid > .page-card:nth-child(6),
+.settings-grid > .page-card:nth-child(6),
+.inventory-table-body .inventory-table-row:nth-child(6),
+.product-card-grid .product-card:nth-child(6),
+.product-admin-list .product-admin-row:nth-child(6) {
+  animation-delay: 0.23s;
 }
 
 .dashboard-grid {
@@ -365,6 +528,7 @@ body {
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--input-bg) 82%, transparent);
   padding: 12px 12px 4px;
+  animation: fadeSlideUp 0.5s var(--ease-standard) both;
 }
 
 .dashboard-line-svg {
@@ -399,6 +563,7 @@ body {
   display: grid;
   place-items: center;
   border: 1px solid var(--border);
+  animation: softPulseIn 0.42s var(--ease-standard) both;
 }
 
 .dashboard-donut-hole {
@@ -439,6 +604,15 @@ body {
   border-radius: 8px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--input-bg) 68%, transparent);
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard);
+}
+
+.dashboard-legend-row:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 46%, var(--border));
 }
 
 .dashboard-legend-key {
@@ -510,6 +684,14 @@ body {
   border-radius: 8px;
   padding: 8px 14px;
   cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard);
+}
+
+.screen-btn:hover {
+  transform: translateY(-1px);
 }
 
 .screen-btn.active {
@@ -545,6 +727,16 @@ body {
   border-radius: 12px;
   background: var(--product-card-bg);
   overflow: hidden;
+  transition:
+    transform var(--motion-base) var(--ease-standard),
+    border-color var(--motion-base) var(--ease-standard),
+    box-shadow var(--motion-base) var(--ease-standard);
+}
+
+.product-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  box-shadow: 0 12px 20px color-mix(in srgb, var(--shadow-strong) 55%, transparent);
 }
 
 .product-card-image {
@@ -587,6 +779,15 @@ body {
   border-radius: 8px;
   padding: 6px 0;
   cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+
+.size-btn:hover {
+  transform: translateY(-1px);
 }
 
 .size-btn.active {
@@ -642,6 +843,56 @@ body {
 
 .cart-row {
   justify-content: space-between;
+}
+
+.cart-panel {
+  transform-origin: top right;
+  position: relative;
+}
+
+.cart-panel-pop {
+  animation: cartPanelPop 0.46s var(--ease-standard);
+}
+
+.cart-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cart-title-row h3 {
+  margin: 0;
+}
+
+.cart-add-chip {
+  min-width: 34px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f8fffc;
+  background: linear-gradient(90deg, #0eae72, #12bb78);
+  box-shadow: 0 8px 16px rgba(14, 174, 114, 0.3);
+  opacity: 0;
+  transform: translateY(6px) scale(0.85);
+  pointer-events: none;
+}
+
+.cart-add-chip.show {
+  animation: cartAddChipPop 0.9s var(--ease-standard) forwards;
+}
+
+.cart-row {
+  border-radius: 10px;
+  transition: background var(--motion-fast) var(--ease-standard);
+}
+
+.cart-row-added {
+  animation: cartRowAdded 0.74s var(--ease-standard);
 }
 
 .cart-item-image {
@@ -1130,6 +1381,16 @@ body {
   font-weight: 600;
   box-shadow: 0 10px 18px rgba(10, 168, 110, 0.25);
   cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    filter var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.inventory-add-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 14px 22px rgba(10, 168, 110, 0.3);
 }
 
 .inventory-modern-table {
@@ -1245,6 +1506,14 @@ body {
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+
+.inventory-action-btn:hover {
+  transform: translateY(-1px);
 }
 
 .inventory-action-btn .app-icon {
@@ -1558,6 +1827,87 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes cartPanelPop {
+  0% {
+    transform: scale(0.96);
+    box-shadow: 0 0 0 rgba(14, 174, 114, 0);
+  }
+
+  45% {
+    transform: scale(1.02);
+    box-shadow: 0 16px 26px rgba(14, 174, 114, 0.28);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+
+@keyframes cartAddChipPop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.82);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  78% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.9);
+  }
+}
+
+@keyframes cartRowAdded {
+  0% {
+    background: color-mix(in srgb, var(--accent) 36%, transparent);
+    transform: translateX(6px);
+  }
+
+  58% {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    transform: translateX(0);
+  }
+
+  100% {
+    background: transparent;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  body {
+    animation: none;
+  }
+
+  .dashboard-grid > .page-card,
+  .reports-grid > .page-card,
+  .settings-grid > .page-card,
+  .inventory-table-body .inventory-table-row,
+  .product-card-grid .product-card,
+  .product-admin-list .product-admin-row {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 

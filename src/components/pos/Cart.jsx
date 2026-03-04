@@ -1,8 +1,56 @@
+import { useEffect, useRef, useState } from "react";
 import useI18n from "../../i18n/useI18n";
 import AppIcon from "../common/AppIcon";
 
-function Cart({ items, totalAmount, onCheckout, onRemoveItem, checkoutLoading }) {
+function Cart({
+  items,
+  totalAmount,
+  onCheckout,
+  onRemoveItem,
+  checkoutLoading,
+  recentAddToken,
+  highlightedCartKey,
+}) {
   const { t } = useI18n();
+  const [isPanelPopping, setIsPanelPopping] = useState(false);
+  const [showAddChip, setShowAddChip] = useState(false);
+  const popTimerRef = useRef(null);
+  const chipTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (!recentAddToken) {
+      return;
+    }
+
+    setIsPanelPopping(true);
+    setShowAddChip(true);
+
+    if (popTimerRef.current) {
+      clearTimeout(popTimerRef.current);
+    }
+    if (chipTimerRef.current) {
+      clearTimeout(chipTimerRef.current);
+    }
+
+    popTimerRef.current = window.setTimeout(() => {
+      setIsPanelPopping(false);
+    }, 460);
+    chipTimerRef.current = window.setTimeout(() => {
+      setShowAddChip(false);
+    }, 960);
+  }, [recentAddToken]);
+
+  useEffect(() => {
+    return () => {
+      if (popTimerRef.current) {
+        clearTimeout(popTimerRef.current);
+      }
+      if (chipTimerRef.current) {
+        clearTimeout(chipTimerRef.current);
+      }
+    };
+  }, []);
+
   const getSizeLabel = (size) => {
     if (size === "Small") return t("common.sizeSmall");
     if (size === "Large") return t("common.sizeLarge");
@@ -19,13 +67,23 @@ function Cart({ items, totalAmount, onCheckout, onRemoveItem, checkoutLoading })
   };
 
   return (
-    <div className="panel">
-      <h3>{t("cart.title")}</h3>
+    <div className={`panel cart-panel ${isPanelPopping ? "cart-panel-pop" : ""}`}>
+      <div className="cart-title-row">
+        <h3>{t("cart.title")}</h3>
+        <span className={`cart-add-chip ${showAddChip ? "show" : ""}`} aria-hidden="true">
+          +1
+        </span>
+      </div>
       {items.length === 0 ? (
         <p>{t("cart.noItemsYet")}</p>
       ) : (
         items.map((item) => (
-          <div key={item.cartKey || item.id} className="list-row cart-row">
+          <div
+            key={item.cartKey || item.id}
+            className={`list-row cart-row ${highlightedCartKey === (item.cartKey || item.id)
+              ? "cart-row-added"
+              : ""}`}
+          >
             <img
               className="cart-item-image"
               src={getItemImageUrl(item)}

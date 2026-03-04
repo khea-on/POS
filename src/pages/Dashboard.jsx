@@ -18,6 +18,29 @@ const toLocalDateKey = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const toArray = (value) => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (value && typeof value === "object") {
+    if (Array.isArray(value.items)) {
+      return value.items;
+    }
+    if (Array.isArray(value.data)) {
+      return value.data;
+    }
+    if (Array.isArray(value.results)) {
+      return value.results;
+    }
+    if (Array.isArray(value.$values)) {
+      return value.$values;
+    }
+  }
+
+  return [];
+};
+
 function Dashboard() {
   const { t } = useI18n();
   const [orders, setOrders] = useState([]);
@@ -35,8 +58,8 @@ function Dashboard() {
           gateway.products.getAll(),
         ]);
 
-        setOrders(ordersData || []);
-        setProducts(productsData || []);
+        setOrders(toArray(ordersData));
+        setProducts(toArray(productsData));
       } catch (err) {
         const apiError = err.response?.data;
         if (typeof apiError === "string" && apiError.trim()) {

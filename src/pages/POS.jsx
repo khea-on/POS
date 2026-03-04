@@ -18,6 +18,9 @@ function POS() {
   const [success, setSuccess] = useState("");
   const [checkoutAlert, setCheckoutAlert] = useState({ open: false, message: "" });
   const checkoutAlertTimeoutRef = useRef(null);
+  const cartHighlightTimeoutRef = useRef(null);
+  const [recentAddToken, setRecentAddToken] = useState(0);
+  const [highlightedCartKey, setHighlightedCartKey] = useState("");
 
   const getDisplaySize = useCallback((size) => {
     if (size === "Small") return t("common.sizeSmall");
@@ -46,15 +49,19 @@ function POS() {
       if (checkoutAlertTimeoutRef.current) {
         clearTimeout(checkoutAlertTimeoutRef.current);
       }
+      if (cartHighlightTimeoutRef.current) {
+        clearTimeout(cartHighlightTimeoutRef.current);
+      }
     };
   }, []);
 
   const handleAddItem = (item) => {
+    const selectedSize = item.selectedSize || "Medium";
+    const cartKey = `${item.id}-${selectedSize}`;
+
     setError("");
     setSuccess("");
     setCartItems((prevItems) => {
-      const selectedSize = item.selectedSize || "Medium";
-      const cartKey = `${item.id}-${selectedSize}`;
       const existing = prevItems.find((cartItem) => cartItem.cartKey === cartKey);
       if (existing) {
         return prevItems.map((cartItem) =>
@@ -66,6 +73,15 @@ function POS() {
 
       return [...prevItems, { ...item, selectedSize, cartKey, quantity: 1 }];
     });
+
+    setHighlightedCartKey(cartKey);
+    setRecentAddToken((prev) => prev + 1);
+    if (cartHighlightTimeoutRef.current) {
+      clearTimeout(cartHighlightTimeoutRef.current);
+    }
+    cartHighlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightedCartKey("");
+    }, 900);
   };
 
   const handleRemoveItem = (cartKey) => {
@@ -418,6 +434,8 @@ function POS() {
               onCheckout={handleCheckout}
               onRemoveItem={handleRemoveItem}
               checkoutLoading={checkingOut}
+              recentAddToken={recentAddToken}
+              highlightedCartKey={highlightedCartKey}
             />
           ) : null}
         </div>
