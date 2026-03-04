@@ -347,6 +347,119 @@ body {
   min-height: auto;
 }
 
+.dashboard-chart-card {
+  grid-column: span 2;
+}
+
+.dashboard-chart-head h2 {
+  margin-bottom: 6px;
+}
+
+.dashboard-chart-head .muted-text {
+  margin-top: 0;
+}
+
+.dashboard-line-chart {
+  margin-top: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--input-bg) 82%, transparent);
+  padding: 12px 12px 4px;
+}
+
+.dashboard-line-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.dashboard-axis-label {
+  font-size: 11px;
+  fill: var(--muted);
+  font-family: inherit;
+}
+
+.dashboard-pie-layout {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.dashboard-donut-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.dashboard-donut {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+}
+
+.dashboard-donut-hole {
+  width: 106px;
+  height: 106px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.dashboard-donut-hole span {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.dashboard-donut-hole small {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.dashboard-chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--input-bg) 68%, transparent);
+}
+
+.dashboard-legend-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.dashboard-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dashboard-legend-value {
+  color: var(--muted);
+  font-weight: 600;
+}
+
 .reports-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -820,6 +933,75 @@ body {
 
 .settings-card {
   min-height: 140px;
+}
+
+.settings-user-management {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-user-management .inventory-modern-title h2 {
+  font-size: 1.5rem;
+}
+
+.settings-user-management .inventory-modern-title p {
+  max-width: 420px;
+}
+
+.settings-user-restricted {
+  padding: 14px 16px;
+}
+
+.settings-users-table-head,
+.settings-users-table-row {
+  grid-template-columns: 2.2fr 1fr 1fr 0.8fr;
+}
+
+.settings-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings-user-cell img {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--product-image-bg);
+}
+
+.settings-role-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+
+.settings-role-pill.admin {
+  color: #065f46;
+  border-color: rgba(16, 185, 129, 0.34);
+  background: #dcfce7;
+}
+
+.settings-role-pill.cashier {
+  color: #1f3a8a;
+  border-color: rgba(96, 165, 250, 0.36);
+  background: #dbeafe;
+}
+
+.settings-user-delete-btn {
+  color: #991b1b;
+  border-color: rgba(239, 68, 68, 0.34);
+  background: #fee2e2;
 }
 
 .product-form {
@@ -1396,8 +1578,20 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .dashboard-chart-card {
+    grid-column: span 1;
+  }
+
   .reports-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-pie-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-chart-legend {
+    width: 100%;
   }
 
   .settings-grid {
@@ -1493,6 +1687,10 @@ body {
 
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-chart-card {
+    grid-column: 1 / -1;
   }
 
   .inventory-modern-title h2 {

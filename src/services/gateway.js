@@ -6,6 +6,8 @@ export const routes = {
     register: "/auth/register",
     me: "/auth/me",
     profileImage: "/auth/profile-image",
+    users: "/auth/users",
+    userById: (userId) => `/auth/users/${userId}`,
   },
   orders: {
     root: "/orders",
@@ -29,6 +31,10 @@ const gateway = {
     me: () => unwrap(api.get(routes.auth.me)),
     updateProfileImage: (payload) =>
       unwrap(api.put(routes.auth.profileImage, payload)),
+    getUsers: () => unwrap(api.get(routes.auth.users)),
+    updateUser: (userId, payload) =>
+      unwrap(api.put(routes.auth.userById(userId), payload)),
+    deleteUser: (userId) => unwrap(api.delete(routes.auth.userById(userId))),
   },
   orders: {
     getAll: (params) => unwrap(api.get(routes.orders.root, { params })),

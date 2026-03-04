@@ -3,6 +3,37 @@ import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
 
+const DEFAULT_USER_FORM = {
+  username: "",
+  role: "Cashier",
+};
+
+const normalizeRole = (role) => {
+  return String(role || "").toLowerCase() === "admin" ? "Admin" : "Cashier";
+};
+
+const formatCreatedDate = (value) => {
+  if (!value) {
+    return "-";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "-";
+  }
+
+  return parsed.toLocaleDateString();
+};
+
+const getUserAvatarUrl = (user) => {
+  if (user?.imageUrl) {
+    return user.imageUrl;
+  }
+
+  const fallback = String(user?.username || "U").slice(0, 1).toUpperCase();
+  return `https://placehold.co/64x64?text=${encodeURIComponent(fallback)}`;
+};
+
 function Settings() {
   const { t } = useI18n();
   const [imageUrl, setImageUrl] = useState(localStorage.getItem("imageUrl") || "");
@@ -10,13 +41,29 @@ function Settings() {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [savingImage, setSavingImage] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState("");
+  const [settingsError, setSettingsError] = useState("");
+
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersMessage, setUsersMessage] = useState("");
+  const [usersError, setUsersError] = useState("");
+  const [userSearch, setUserSearch] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState("all");
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [userForm, setUserForm] = useState(DEFAULT_USER_FORM);
+  const [savingUser, setSavingUser] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState(null);
+
+  const currentUsername = localStorage.getItem("username") || "";
+  const currentRole = profile?.role || localStorage.getItem("role") || "";
+  const isAdmin = currentRole.toLowerCase() === "admin";
 
   const loadSettingsData = useCallback(async () => {
     setDataLoading(true);
-    setError("");
+    setSettingsError("");
 
     try {
       const [profileData, ordersData, productsData] = await Promise.all([
@@ -31,18 +78,48 @@ function Settings() {
     } catch (err) {
       const apiError = err.response?.data;
       if (typeof apiError === "string" && apiError.trim()) {
-        setError(apiError);
+        setSettingsError(apiError);
       } else {
-        setError(t("settings.failedToLoadSettingsData"));
+        setSettingsError(t("settings.failedToLoadSettingsData"));
       }
     } finally {
       setDataLoading(false);
     }
   }, [t]);
 
+  const loadUsers = useCallback(async () => {
+    if (!isAdmin) {
+      setUsers([]);
+      setUsersError("");
+      setUsersLoading(false);
+      return;
+    }
+
+    setUsersLoading(true);
+    setUsersError("");
+
+    try {
+      const usersData = await gateway.auth.getUsers();
+      setUsers(usersData || []);
+    } catch (err) {
+      const apiError = err.response?.data;
+      if (typeof apiError === "string" && apiError.trim()) {
+        setUsersError(apiError);
+      } else {
+        setUsersError(t("settings.failedToLoadUsers"));
+      }
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [isAdmin, t]);
+
   useEffect(() => {
     loadSettingsData();
   }, [loadSettingsData]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -72,10 +149,140 @@ function Settings() {
     };
   }, [orders, products]);
 
+  const filteredUsers = useMemo(() => {
+    const searchTerm = userSearch.trim().toLowerCase();
+
+    return [...users]
+      .filter((user) => {
+        const username = String(user.username || "").toLowerCase();
+        const role = normalizeRole(user.role).toLowerCase();
+
+        if (searchTerm && !username.includes(searchTerm)) {
+          return false;
+        }
+
+        if (userRoleFilter !== "all" && role !== userRoleFilter) {
+          return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => String(a.username || "").localeCompare(String(b.username || "")));
+  }, [userRoleFilter, userSearch, users]);
+
+  const closeEditUserModal = useCallback(() => {
+    if (savingUser) {
+      return;
+    }
+
+    setShowEditUserModal(false);
+    setEditingUserId(null);
+    setUserForm(DEFAULT_USER_FORM);
+  }, [savingUser]);
+
+  useEffect(() => {
+    if (!showEditUserModal) {
+      return;
+    }
+
+    const handleEscClose = (event) => {
+      if (event.key === "Escape") {
+        closeEditUserModal();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscClose);
+    return () => {
+      window.removeEventListener("keydown", handleEscClose);
+    };
+  }, [showEditUserModal, closeEditUserModal]);
+
+  const handleOpenEditUserModal = (user) => {
+    setUsersMessage("");
+    setUsersError("");
+    setEditingUserId(user.id);
+    setUserForm({
+      username: user.username || "",
+      role: normalizeRole(user.role),
+    });
+    setShowEditUserModal(true);
+  };
+
+  const handleSubmitUserUpdate = async (event) => {
+    event.preventDefault();
+    if (!editingUserId) {
+      return;
+    }
+
+    setSavingUser(true);
+    setUsersMessage("");
+    setUsersError("");
+
+    try {
+      const updated = await gateway.auth.updateUser(editingUserId, {
+        username: userForm.username.trim(),
+        role: userForm.role,
+      });
+
+      setUsersMessage(
+        t("settings.userUpdated", {
+          username: updated?.username || userForm.username.trim(),
+        })
+      );
+      setShowEditUserModal(false);
+      setEditingUserId(null);
+      setUserForm(DEFAULT_USER_FORM);
+      await Promise.all([loadUsers(), loadSettingsData()]);
+    } catch (err) {
+      const apiError = err.response?.data;
+      if (typeof apiError === "string" && apiError.trim()) {
+        setUsersError(apiError);
+      } else {
+        setUsersError(t("settings.failedToUpdateUser"));
+      }
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    const shouldDelete = window.confirm(
+      t("settings.confirmDeleteUser", {
+        username: user.username || "-",
+      })
+    );
+    if (!shouldDelete) {
+      return;
+    }
+
+    setDeletingUserId(user.id);
+    setUsersMessage("");
+    setUsersError("");
+
+    try {
+      await gateway.auth.deleteUser(user.id);
+      setUsersMessage(
+        t("settings.userDeleted", {
+          username: user.username || "-",
+        })
+      );
+      await Promise.all([loadUsers(), loadSettingsData()]);
+    } catch (err) {
+      const apiError = err.response?.data;
+      if (typeof apiError === "string" && apiError.trim()) {
+        setUsersError(apiError);
+      } else {
+        setUsersError(t("settings.failedToDeleteUser"));
+      }
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
   const handleSaveImage = async () => {
-    setLoading(true);
-    setError("");
-    setMessage("");
+    setSavingImage(true);
+    setSettingsError("");
+    setSettingsMessage("");
 
     try {
       const data = await gateway.auth.updateProfileImage({
@@ -83,17 +290,95 @@ function Settings() {
       });
       localStorage.setItem("imageUrl", data.imageUrl || "");
       window.dispatchEvent(new Event("user-profile-updated"));
-      setMessage(t("settings.userImageUpdated"));
+      setSettingsMessage(t("settings.userImageUpdated"));
     } catch (err) {
-      setError(err.response?.data || t("settings.failedToUpdateUserImage"));
+      setSettingsError(err.response?.data || t("settings.failedToUpdateUserImage"));
     } finally {
-      setLoading(false);
+      setSavingImage(false);
     }
   };
 
   return (
     <div className="page-card">
+      {showEditUserModal ? (
+        <div
+          className="inventory-modal-backdrop"
+          role="presentation"
+          onClick={closeEditUserModal}
+        >
+          <div
+            className="inventory-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-user-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="inventory-modal-header">
+              <div>
+                <h3 id="edit-user-modal-title">{t("settings.editUser")}</h3>
+                <p className="muted-text">{t("settings.userManagement")}</p>
+              </div>
+              <button
+                type="button"
+                className="screen-btn btn-with-icon"
+                onClick={closeEditUserModal}
+                disabled={savingUser}
+              >
+                <AppIcon name="close" />
+                {t("common.close")}
+              </button>
+            </div>
+
+            <form className="inventory-modal-form" onSubmit={handleSubmitUserUpdate}>
+              <label className="inventory-modal-field">
+                <span className="inventory-modal-label">{t("settings.username")}</span>
+                <input
+                  className="inventory-modal-input"
+                  value={userForm.username}
+                  onChange={(event) =>
+                    setUserForm((prev) => ({ ...prev, username: event.target.value }))
+                  }
+                  required
+                  autoFocus
+                />
+              </label>
+
+              <label className="inventory-modal-field">
+                <span className="inventory-modal-label">{t("settings.role")}</span>
+                <select
+                  className="inventory-modal-input"
+                  value={userForm.role}
+                  onChange={(event) =>
+                    setUserForm((prev) => ({ ...prev, role: event.target.value }))
+                  }
+                >
+                  <option value="Cashier">{t("settings.roleCashier")}</option>
+                  <option value="Admin">{t("settings.roleAdmin")}</option>
+                </select>
+              </label>
+
+              <div className="product-form-actions inventory-modal-actions">
+                <button className="primary-btn btn-with-icon" type="submit" disabled={savingUser}>
+                  <AppIcon name="save" />
+                  {savingUser ? t("settings.updatingUser") : t("settings.updateUser")}
+                </button>
+                <button
+                  className="screen-btn btn-with-icon"
+                  type="button"
+                  onClick={closeEditUserModal}
+                  disabled={savingUser}
+                >
+                  <AppIcon name="cancel" />
+                  {t("common.cancel")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
       <h2>{t("settings.title")}</h2>
+
       <div className="settings-grid">
         <div className="page-card settings-card">
           <h3>{t("settings.companyName")}</h3>
@@ -143,10 +428,138 @@ function Settings() {
         <div className="page-card settings-card">
           <h3>{t("settings.security")}</h3>
           <p className="dashboard-value">{t("settings.enabled")}</p>
-          <p className="muted-text">
-            {t("settings.securityDescription")}
-          </p>
+          <p className="muted-text">{t("settings.securityDescription")}</p>
         </div>
+      </div>
+
+      <div className="settings-user-management">
+        <div className="inventory-modern-toolbar">
+          <div className="inventory-modern-title">
+            <h2>{t("settings.userListTitle")}</h2>
+            <p>{t("settings.userListSubtitle")}</p>
+          </div>
+          <div className="inventory-modern-controls">
+            <label className="inventory-search" aria-label={t("settings.searchUsers")}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              <input
+                placeholder={t("settings.searchUsers")}
+                value={userSearch}
+                onChange={(event) => setUserSearch(event.target.value)}
+                disabled={!isAdmin}
+              />
+            </label>
+
+            <select
+              value={userRoleFilter}
+              onChange={(event) => setUserRoleFilter(event.target.value)}
+              disabled={!isAdmin}
+            >
+              <option value="all">{t("settings.allRoles")}</option>
+              <option value="admin">{t("settings.roleAdmin")}</option>
+              <option value="cashier">{t("settings.roleCashier")}</option>
+            </select>
+
+            <button
+              className="inventory-add-btn"
+              type="button"
+              onClick={loadUsers}
+              disabled={!isAdmin || usersLoading}
+            >
+              <AppIcon name="save" />
+              {t("settings.refreshUsers")}
+            </button>
+          </div>
+        </div>
+
+        {usersMessage ? <p className="success-text">{usersMessage}</p> : null}
+        {usersError ? <p className="form-error">{usersError}</p> : null}
+
+        {!isAdmin ? (
+          <div className="page-card settings-user-restricted">
+            <p className="muted-text">{t("settings.userManagementAdminOnly")}</p>
+          </div>
+        ) : (
+          <div className="inventory-modern-table">
+            <div className="inventory-table-head settings-users-table-head">
+              <span>{t("settings.columnUser")}</span>
+              <span>{t("settings.columnRole")}</span>
+              <span>{t("settings.columnCreated")}</span>
+              <span>{t("settings.columnActions")}</span>
+            </div>
+
+            {usersLoading ? <p className="muted-text">{t("settings.loadingUsers")}</p> : null}
+
+            {!usersLoading && filteredUsers.length === 0 ? (
+              <p className="muted-text">{t("settings.noUsersMatched")}</p>
+            ) : (
+              <div className="inventory-table-body">
+                {filteredUsers.map((user) => {
+                  const normalizedRole = normalizeRole(user.role);
+                  const roleClassName = normalizedRole.toLowerCase();
+                  const isCurrentUser =
+                    String(user.username || "").toLowerCase() === currentUsername.toLowerCase();
+                  const isDeleting = deletingUserId === user.id;
+                  const isBusy = savingUser || isDeleting;
+                  const disabledReason = isCurrentUser
+                    ? t("settings.currentUserCannotBeChanged")
+                    : "";
+
+                  return (
+                    <div
+                      className="inventory-table-row settings-users-table-row"
+                      key={user.id}
+                    >
+                      <div className="settings-user-cell">
+                        <img src={getUserAvatarUrl(user)} alt={user.username} />
+                        <div>
+                          <div className="inventory-product-name">{user.username}</div>
+                          <div className="inventory-product-sku">
+                            {t("settings.userCreatedAt", {
+                              date: formatCreatedDate(user.createdAt),
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <span className={`settings-role-pill ${roleClassName}`}>
+                          {normalizedRole === "Admin"
+                            ? t("settings.roleAdmin")
+                            : t("settings.roleCashier")}
+                        </span>
+                      </div>
+                      <div className="inventory-row-text">{formatCreatedDate(user.createdAt)}</div>
+                      <div className="inventory-actions">
+                        <button
+                          type="button"
+                          className="inventory-action-btn inventory-edit-action-btn"
+                          disabled={isBusy || isCurrentUser}
+                          onClick={() => handleOpenEditUserModal(user)}
+                          aria-label={t("settings.editUser")}
+                          title={disabledReason || t("settings.editUser")}
+                        >
+                          <AppIcon name="edit" />
+                        </button>
+                        <button
+                          type="button"
+                          className="inventory-action-btn settings-user-delete-btn"
+                          disabled={isBusy || isCurrentUser}
+                          onClick={() => handleDeleteUser(user)}
+                          aria-label={t("common.delete")}
+                          title={disabledReason || t("common.delete")}
+                        >
+                          <AppIcon name="delete" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="settings-image-section">
@@ -154,19 +567,19 @@ function Settings() {
         <input
           placeholder="https://example.com/avatar.jpg"
           value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
+          onChange={(event) => setImageUrl(event.target.value)}
         />
         <button
           className="primary-btn btn-with-icon"
           type="button"
           onClick={handleSaveImage}
-          disabled={loading}
+          disabled={savingImage}
         >
           <AppIcon name="save" />
-          {loading ? t("common.saving") : t("settings.saveUserImage")}
+          {savingImage ? t("common.saving") : t("settings.saveUserImage")}
         </button>
-        {message ? <p className="success-text">{message}</p> : null}
-        {error ? <p className="form-error">{error}</p> : null}
+        {settingsMessage ? <p className="success-text">{settingsMessage}</p> : null}
+        {settingsError ? <p className="form-error">{settingsError}</p> : null}
         {dataLoading ? <p className="muted-text">{t("settings.loadingSettingsData")}</p> : null}
       </div>
     </div>
@@ -174,5 +587,3 @@ function Settings() {
 }
 
 export default Settings;
-
-
