@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
-import { readImageFileAsDataUrl } from "../utils/imageFile";
 
 const defaultProductForm = {
   name: "",
@@ -32,6 +31,7 @@ function ProductManagement() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
   const imageFileInputRef = useRef(null);
 
   const loadProducts = useCallback(async () => {
@@ -54,6 +54,7 @@ function ProductManagement() {
   const resetProductForm = () => {
     setProductForm(defaultProductForm);
     setEditingProductId(null);
+    setSelectedImageFile(null);
   };
 
   const filteredProducts = useMemo(() => {
@@ -130,12 +131,23 @@ function ProductManagement() {
     };
 
     try {
+      let savedProduct = null;
+      let targetProductId = editingProductId;
+
       if (editingProductId) {
-        await gateway.products.update(editingProductId, payload);
+        savedProduct = await gateway.products.update(editingProductId, payload);
         setMessage(t("productManagement.productUpdated"));
       } else {
-        await gateway.products.create(payload);
+        savedProduct = await gateway.products.create(payload);
+        targetProductId = savedProduct?.id || null;
         setMessage(t("productManagement.productCreated"));
+      }
+
+      if (selectedImageFile) {
+        if (!targetProductId) {
+          throw new Error("Missing product id for image upload.");
+        }
+        await gateway.products.uploadImage(targetProductId, selectedImageFile);
       }
 
       resetProductForm();
@@ -155,6 +167,7 @@ function ProductManagement() {
   const handleStartEdit = (product) => {
     setError("");
     setMessage("");
+    setSelectedImageFile(null);
     setEditingProductId(product.id);
     setProductForm({
       name: product.name || "",
@@ -186,10 +199,8 @@ function ProductManagement() {
     setMessage("");
     setUploadingImage(true);
     try {
-      const imageDataUrl = await readImageFileAsDataUrl(selectedFile);
-      setProductForm((prev) => ({ ...prev, imageUrl: imageDataUrl }));
-    } catch {
-      setError(t("productManagement.failedToReadImage"));
+      setSelectedImageFile(selectedFile);
+      setMessage(`${selectedFile.name} selected. Click save to upload.`);
     } finally {
       setUploadingImage(false);
     }
@@ -319,8 +330,11 @@ function ProductManagement() {
             <button
               className="cancel-btn btn-with-icon"
               type="button"
-              onClick={() => setProductForm((prev) => ({ ...prev, imageUrl: "" }))}
-              disabled={loading || uploadingImage || !productForm.imageUrl.trim()}
+              onClick={() => {
+                setSelectedImageFile(null);
+                setProductForm((prev) => ({ ...prev, imageUrl: "" }));
+              }}
+              disabled={loading || uploadingImage || (!productForm.imageUrl.trim() && !selectedImageFile)}
             >
               <AppIcon name="cancel" />
               {t("productManagement.clearImage")}
@@ -333,6 +347,9 @@ function ProductManagement() {
               style={{ display: "none" }}
             />
           </div>
+          {selectedImageFile ? (
+            <p className="muted-text">{selectedImageFile.name}</p>
+          ) : null}
           <input
             type="number"
             step="0.01"

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
-import { readImageFileAsDataUrl } from "../utils/imageFile";
 
 const DEFAULT_LOW_STOCK_THRESHOLD = 10;
 const REQUIRED_IMPORT_HEADERS = ["name", "sku"];
@@ -152,6 +151,7 @@ function InventoryManagement() {
   const [creatingProduct, setCreatingProduct] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const [addProductForm, setAddProductForm] = useState(DEFAULT_ADD_PRODUCT_FORM);
+  const [selectedProductImageFile, setSelectedProductImageFile] = useState(null);
   const [adjustingProductId, setAdjustingProductId] = useState(null);
   const [uploadingProductImage, setUploadingProductImage] = useState(false);
   const [message, setMessage] = useState("");
@@ -226,6 +226,7 @@ function InventoryManagement() {
     setShowAddProductModal(false);
     setEditingProductId(null);
     setAddProductForm(DEFAULT_ADD_PRODUCT_FORM);
+    setSelectedProductImageFile(null);
   }, [creatingProduct]);
 
   useEffect(() => {
@@ -250,6 +251,7 @@ function InventoryManagement() {
     setMessage("");
     setEditingProductId(null);
     setAddProductForm(DEFAULT_ADD_PRODUCT_FORM);
+    setSelectedProductImageFile(null);
     setShowAddProductModal(true);
   };
 
@@ -257,6 +259,7 @@ function InventoryManagement() {
     setError("");
     setMessage("");
     setEditingProductId(product.id);
+    setSelectedProductImageFile(null);
     setAddProductForm({
       name: product.name || "",
       sku: product.sku || "",
@@ -289,16 +292,28 @@ function InventoryManagement() {
         isActive: Boolean(addProductForm.isActive),
       };
 
+      let savedProduct = null;
+      let targetProductId = editingProductId;
+
       if (editingProductId) {
-        await gateway.products.update(editingProductId, payload);
+        savedProduct = await gateway.products.update(editingProductId, payload);
         setMessage(t("productManagement.productUpdated"));
       } else {
-        await gateway.products.create(payload);
+        savedProduct = await gateway.products.create(payload);
+        targetProductId = savedProduct?.id || null;
         setMessage(t("productManagement.productCreated"));
+      }
+
+      if (selectedProductImageFile) {
+        if (!targetProductId) {
+          throw new Error("Missing product id for image upload.");
+        }
+        await gateway.products.uploadImage(targetProductId, selectedProductImageFile);
       }
       setShowAddProductModal(false);
       setEditingProductId(null);
       setAddProductForm(DEFAULT_ADD_PRODUCT_FORM);
+      setSelectedProductImageFile(null);
       await loadInventory();
     } catch (err) {
       const apiError = err.response?.data;
@@ -314,7 +329,7 @@ function InventoryManagement() {
     } finally {
       setCreatingProduct(false);
     }
-  }, [addProductForm, editingProductId, loadInventory, t]);
+  }, [addProductForm, editingProductId, loadInventory, selectedProductImageFile, t]);
 
   const handlePickProductImage = async (event) => {
     const selectedFile = event.target.files?.[0];
@@ -328,10 +343,8 @@ function InventoryManagement() {
     setMessage("");
     setUploadingProductImage(true);
     try {
-      const imageDataUrl = await readImageFileAsDataUrl(selectedFile);
-      setAddProductForm((prev) => ({ ...prev, imageUrl: imageDataUrl }));
-    } catch {
-      setError(t("productManagement.failedToReadImage"));
+      setSelectedProductImageFile(selectedFile);
+      setMessage(`${selectedFile.name} selected. Click save to upload.`);
     } finally {
       setUploadingProductImage(false);
     }
@@ -710,15 +723,23 @@ function InventoryManagement() {
                   <button
                     className="cancel-btn btn-with-icon"
                     type="button"
-                    onClick={() => setAddProductForm((prev) => ({ ...prev, imageUrl: "" }))}
+                    onClick={() => {
+                      setSelectedProductImageFile(null);
+                      setAddProductForm((prev) => ({ ...prev, imageUrl: "" }));
+                    }}
                     disabled={
-                      creatingProduct || uploadingProductImage || !addProductForm.imageUrl.trim()
+                      creatingProduct
+                      || uploadingProductImage
+                      || (!addProductForm.imageUrl.trim() && !selectedProductImageFile)
                     }
                   >
                     <AppIcon name="cancel" />
                     {t("productManagement.clearImage")}
                   </button>
                 </div>
+                {selectedProductImageFile ? (
+                  <p className="muted-text">{selectedProductImageFile.name}</p>
+                ) : null}
                 <input
                   ref={productImageInputRef}
                   type="file"

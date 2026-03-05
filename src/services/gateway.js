@@ -6,6 +6,7 @@ export const routes = {
     register: "/auth/register",
     me: "/auth/me",
     profileImage: "/auth/profile-image",
+    profileImageUpload: "/auth/profile-image/upload",
     users: "/auth/users",
     userById: (userId) => `/auth/users/${userId}`,
   },
@@ -18,6 +19,7 @@ export const routes = {
     root: "/products",
     inventorySummary: "/products/inventory-summary",
     byId: (productId) => `/products/${productId}`,
+    uploadImage: (productId) => `/products/${productId}/image`,
     adjustStock: (productId) => `/products/${productId}/adjust-stock`,
   },
 };
@@ -31,6 +33,11 @@ const gateway = {
     me: () => unwrap(api.get(routes.auth.me)),
     updateProfileImage: (payload) =>
       unwrap(api.put(routes.auth.profileImage, payload)),
+    uploadProfileImage: (file) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return unwrap(api.post(routes.auth.profileImageUpload, formData));
+    },
     getUsers: () => unwrap(api.get(routes.auth.users)),
     updateUser: (userId, payload) =>
       unwrap(api.put(routes.auth.userById(userId), payload)),
@@ -46,6 +53,11 @@ const gateway = {
     create: (payload) => unwrap(api.post(routes.products.root, payload)),
     update: (productId, payload) =>
       unwrap(api.put(routes.products.byId(productId), payload)),
+    uploadImage: (productId, file) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return unwrap(api.post(routes.products.uploadImage(productId), formData));
+    },
     remove: (productId) => unwrap(api.delete(routes.products.byId(productId))),
     inventorySummary: (params) =>
       unwrap(api.get(routes.products.inventorySummary, { params })),
