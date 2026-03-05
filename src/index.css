@@ -1273,6 +1273,14 @@ body {
   justify-self: start;
 }
 
+.image-url-input-group {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
 .product-admin-list {
   max-height: 360px;
   overflow: auto;
@@ -1614,6 +1622,13 @@ body {
   color: color-mix(in srgb, var(--muted) 82%, transparent);
 }
 
+.inventory-image-url-input-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
 .inventory-modal-checkbox {
   display: inline-flex;
   align-items: center;
@@ -1952,6 +1967,10 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .image-url-input-group {
+    grid-template-columns: 1fr;
+  }
+
   .product-admin-row {
     flex-direction: column;
     align-items: flex-start;
@@ -2073,6 +2092,10 @@ body {
   .inventory-modal-field,
   .inventory-modal-field-wide {
     grid-column: 1 / -1;
+  }
+
+  .inventory-image-url-input-group {
+    grid-template-columns: 1fr;
   }
 
   .inventory-summary-grid {

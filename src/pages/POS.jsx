@@ -5,11 +5,47 @@ import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
 
+const POS_CART_STORAGE_KEY = "pos.cart.items.v1";
+
+const loadStoredCartItems = () => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const rawCartItems = window.localStorage.getItem(POS_CART_STORAGE_KEY);
+    if (!rawCartItems) {
+      return [];
+    }
+
+    const parsedCartItems = JSON.parse(rawCartItems);
+    if (!Array.isArray(parsedCartItems)) {
+      return [];
+    }
+
+    return parsedCartItems
+      .map((item) => {
+        const selectedSize = item.selectedSize || "Medium";
+        return {
+          ...item,
+          selectedSize,
+          cartKey: item.cartKey || `${item.id}-${selectedSize}`,
+          quantity: Number.isFinite(item.quantity) && item.quantity > 0
+            ? item.quantity
+            : 1,
+        };
+      })
+      .filter((item) => item.id !== undefined && item.id !== null);
+  } catch {
+    return [];
+  }
+};
+
 function POS() {
   const { t } = useI18n();
   const isAdmin = (localStorage.getItem("role") || "") === "Admin";
   const [activeScreen, setActiveScreen] = useState("items");
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useState(() => loadStoredCartItems());
   const [orders, setOrders] = useState([]);
   const [lastCheckoutOrder, setLastCheckoutOrder] = useState(null);
   const [loadingOrders, setLoadingOrders] = useState(false);
@@ -43,6 +79,22 @@ function POS() {
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      if (cartItems.length === 0) {
+        window.localStorage.removeItem(POS_CART_STORAGE_KEY);
+      } else {
+        window.localStorage.setItem(POS_CART_STORAGE_KEY, JSON.stringify(cartItems));
+      }
+    } catch {
+      // Ignore localStorage write failures; cart still works in memory.
+    }
+  }, [cartItems]);
 
   useEffect(() => {
     return () => {

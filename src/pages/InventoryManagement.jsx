@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
+import { readImageFileAsDataUrl } from "../utils/imageFile";
 
 const DEFAULT_LOW_STOCK_THRESHOLD = 10;
 const REQUIRED_IMPORT_HEADERS = ["name", "sku"];
@@ -139,6 +140,7 @@ const toCsvCell = (value) => {
 function InventoryManagement() {
   const { t } = useI18n();
   const importFileInputRef = useRef(null);
+  const productImageInputRef = useRef(null);
   const [lowStockThreshold, setLowStockThreshold] = useState(DEFAULT_LOW_STOCK_THRESHOLD);
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
@@ -151,6 +153,7 @@ function InventoryManagement() {
   const [editingProductId, setEditingProductId] = useState(null);
   const [addProductForm, setAddProductForm] = useState(DEFAULT_ADD_PRODUCT_FORM);
   const [adjustingProductId, setAdjustingProductId] = useState(null);
+  const [uploadingProductImage, setUploadingProductImage] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -312,6 +315,27 @@ function InventoryManagement() {
       setCreatingProduct(false);
     }
   }, [addProductForm, editingProductId, loadInventory, t]);
+
+  const handlePickProductImage = async (event) => {
+    const selectedFile = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!selectedFile) {
+      return;
+    }
+
+    setError("");
+    setMessage("");
+    setUploadingProductImage(true);
+    try {
+      const imageDataUrl = await readImageFileAsDataUrl(selectedFile);
+      setAddProductForm((prev) => ({ ...prev, imageUrl: imageDataUrl }));
+    } catch {
+      setError(t("productManagement.failedToReadImage"));
+    } finally {
+      setUploadingProductImage(false);
+    }
+  };
 
   const handleOpenImportPicker = () => {
     importFileInputRef.current?.click();
@@ -664,12 +688,43 @@ function InventoryManagement() {
 
               <label className="inventory-modal-field inventory-modal-field-wide">
                 <span className="inventory-modal-label">{t("productManagement.imageUrl")}</span>
+                <div className="inventory-image-url-input-group">
+                  <input
+                    className="inventory-modal-input"
+                    value={addProductForm.imageUrl}
+                    onChange={(event) =>
+                      setAddProductForm((prev) => ({ ...prev, imageUrl: event.target.value }))
+                    }
+                  />
+                  <button
+                    className="screen-btn btn-with-icon"
+                    type="button"
+                    onClick={() => productImageInputRef.current?.click()}
+                    disabled={creatingProduct || uploadingProductImage}
+                  >
+                    <AppIcon name="plus" />
+                    {uploadingProductImage
+                      ? t("productManagement.uploadingImage")
+                      : t("productManagement.uploadImage")}
+                  </button>
+                  <button
+                    className="cancel-btn btn-with-icon"
+                    type="button"
+                    onClick={() => setAddProductForm((prev) => ({ ...prev, imageUrl: "" }))}
+                    disabled={
+                      creatingProduct || uploadingProductImage || !addProductForm.imageUrl.trim()
+                    }
+                  >
+                    <AppIcon name="cancel" />
+                    {t("productManagement.clearImage")}
+                  </button>
+                </div>
                 <input
-                  className="inventory-modal-input"
-                  value={addProductForm.imageUrl}
-                  onChange={(event) =>
-                    setAddProductForm((prev) => ({ ...prev, imageUrl: event.target.value }))
-                  }
+                  ref={productImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePickProductImage}
+                  style={{ display: "none" }}
                 />
               </label>
 

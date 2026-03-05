@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
+import { readImageFileAsDataUrl } from "../utils/imageFile";
 
 const defaultProductForm = {
   name: "",
@@ -30,6 +31,8 @@ function ProductManagement() {
   const [dataLoading, setDataLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageFileInputRef = useRef(null);
 
   const loadProducts = useCallback(async () => {
     setDataLoading(true);
@@ -171,6 +174,27 @@ function ProductManagement() {
     resetProductForm();
   };
 
+  const handlePickProductImage = async (event) => {
+    const selectedFile = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!selectedFile) {
+      return;
+    }
+
+    setError("");
+    setMessage("");
+    setUploadingImage(true);
+    try {
+      const imageDataUrl = await readImageFileAsDataUrl(selectedFile);
+      setProductForm((prev) => ({ ...prev, imageUrl: imageDataUrl }));
+    } catch {
+      setError(t("productManagement.failedToReadImage"));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleAddStock = async (productId) => {
     const qty = Number.parseInt(stockAdjustments[productId] || "", 10);
     if (!Number.isFinite(qty) || qty <= 0) {
@@ -275,11 +299,40 @@ function ProductManagement() {
             onChange={(e) => setProductForm((prev) => ({ ...prev, sku: e.target.value }))}
             required
           />
-          <input
-            placeholder={t("productManagement.imageUrl")}
-            value={productForm.imageUrl}
-            onChange={(e) => setProductForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
-          />
+          <div className="image-url-input-group">
+            <input
+              placeholder={t("productManagement.imageUrl")}
+              value={productForm.imageUrl}
+              onChange={(e) => setProductForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
+            />
+            <button
+              className="screen-btn btn-with-icon"
+              type="button"
+              onClick={() => imageFileInputRef.current?.click()}
+              disabled={loading || uploadingImage}
+            >
+              <AppIcon name="plus" />
+              {uploadingImage
+                ? t("productManagement.uploadingImage")
+                : t("productManagement.uploadImage")}
+            </button>
+            <button
+              className="cancel-btn btn-with-icon"
+              type="button"
+              onClick={() => setProductForm((prev) => ({ ...prev, imageUrl: "" }))}
+              disabled={loading || uploadingImage || !productForm.imageUrl.trim()}
+            >
+              <AppIcon name="cancel" />
+              {t("productManagement.clearImage")}
+            </button>
+            <input
+              ref={imageFileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePickProductImage}
+              style={{ display: "none" }}
+            />
+          </div>
           <input
             type="number"
             step="0.01"
