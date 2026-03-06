@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import gateway from "../../services/gateway";
+import { createPortal } from "react-dom";
 import useI18n from "../../i18n/useI18n";
+import gateway from "../../services/gateway";
 import AppIcon from "../common/AppIcon";
 
 const getItemImageUrl = (item) => {
@@ -35,6 +36,7 @@ function ProductGrid({ onAddItem }) {
   const { t } = useI18n();
   const [products, setProducts] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState({});
+  const [detailProduct, setDetailProduct] = useState(null);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("active");
   const [stockFilter, setStockFilter] = useState("inStock");
@@ -51,6 +53,23 @@ function ProductGrid({ onAddItem }) {
         setError(t("productGrid.couldNotLoadProducts"));
       });
   }, [t]);
+
+  useEffect(() => {
+    if (!detailProduct) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setDetailProduct(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [detailProduct]);
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -99,6 +118,81 @@ function ProductGrid({ onAddItem }) {
 
     return result;
   }, [products, search, activeFilter, stockFilter, minPrice, maxPrice, sort]);
+
+  const openDetail = (product) => {
+    setDetailProduct(product);
+  };
+
+  const closeDetail = () => {
+    setDetailProduct(null);
+  };
+
+  const detailModal = detailProduct ? (
+    <div className="product-detail-backdrop" onClick={closeDetail}>
+      <div
+        className="product-detail-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="product-detail-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="product-detail-header">
+          <h4 id="product-detail-title">{t("productGrid.itemDetail")}</h4>
+          <button
+            className="product-detail-close"
+            type="button"
+            onClick={closeDetail}
+            aria-label={t("common.close")}
+          >
+            <AppIcon name="close" />
+          </button>
+        </div>
+
+        <img
+          className="product-detail-image"
+          src={getItemImageUrl(detailProduct)}
+          alt={detailProduct.name}
+        />
+
+        <div className="product-detail-info">
+          <div className="product-detail-row">
+            <span>{t("productManagement.name")}</span>
+            <strong>{detailProduct.name || "-"}</strong>
+          </div>
+          <div className="product-detail-row">
+            <span>{t("productGrid.skuLabel")}</span>
+            <strong>{detailProduct.sku || "-"}</strong>
+          </div>
+          <div className="product-detail-row">
+            <span>{t("productGrid.stockLabel")}</span>
+            <strong>{Number(detailProduct.stockQuantity || 0)}</strong>
+          </div>
+          <div className="product-detail-row">
+            <span>{t("productGrid.statusLabel")}</span>
+            <strong>{detailProduct.isActive ? t("common.active") : t("common.inactive")}</strong>
+          </div>
+          <div className="product-detail-row">
+            <span>{t("productGrid.sizeS")}</span>
+            <strong>${getPriceBySize(detailProduct, "Small").toFixed(2)}</strong>
+          </div>
+          <div className="product-detail-row">
+            <span>{t("productGrid.sizeM")}</span>
+            <strong>${getPriceBySize(detailProduct, "Medium").toFixed(2)}</strong>
+          </div>
+          <div className="product-detail-row">
+            <span>{t("productGrid.sizeL")}</span>
+            <strong>${getPriceBySize(detailProduct, "Large").toFixed(2)}</strong>
+          </div>
+        </div>
+
+        {/* <div className="product-detail-actions">
+          <button className="product-detail-trigger" type="button" onClick={closeDetail}>
+            {t("common.close")}
+          </button>
+        </div> */}
+      </div>
+    </div>
+  ) : null;
 
   return (
     <div className="panel">
@@ -149,7 +243,17 @@ function ProductGrid({ onAddItem }) {
       ) : (
         <div className="product-card-grid">
           {filteredProducts.map((p) => (
-            <div key={p.id} className="product-card">
+            <div
+              key={p.id}
+              className="product-card"
+              onDoubleClick={(event) => {
+                if (event.target.closest("button")) {
+                  return;
+                }
+                openDetail(p);
+              }}
+              title={t("productGrid.doubleClickForDetail")}
+            >
               <img
                 className="product-card-image"
                 src={getItemImageUrl(p)}
@@ -162,6 +266,7 @@ function ProductGrid({ onAddItem }) {
                   <div>{t("productGrid.sizeM")}: ${getPriceBySize(p, "Medium").toFixed(2)}</div>
                   <div>{t("productGrid.sizeL")}: ${getPriceBySize(p, "Large").toFixed(2)}</div>
                 </div>
+                <p className="product-card-hint">{t("productGrid.doubleClickForDetail")}</p>
                 <div className="size-selector">
                   {SIZE_OPTIONS.map((size) => (
                     <button
@@ -179,6 +284,13 @@ function ProductGrid({ onAddItem }) {
                     </button>
                   ))}
                 </div>
+                <button
+                  className="product-detail-trigger btn-with-icon"
+                  type="button"
+                  onClick={() => openDetail(p)}
+                >
+                  {t("productGrid.detail")}
+                </button>
                 <button
                   className="primary-btn btn-with-icon"
                   type="button"
@@ -200,6 +312,10 @@ function ProductGrid({ onAddItem }) {
           ))}
         </div>
       )}
+
+      {typeof document !== "undefined" && detailModal
+        ? createPortal(detailModal, document.body)
+        : null}
     </div>
   );
 }

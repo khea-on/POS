@@ -1,5 +1,7 @@
 :root {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --font-family-en: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --font-family-km: "Khmer OS Siemreap", "Noto Sans Khmer", "Khmer OS", sans-serif;
+  font-family: var(--font-family-en);
   line-height: 1.5;
   font-weight: 400;
   color: var(--text);
@@ -45,6 +47,10 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root:lang(km) {
+  font-family: var(--font-family-km);
 }
 
 :root[data-theme="light"] {
@@ -99,6 +105,13 @@ body {
   animation: backgroundDrift 18s ease-in-out infinite alternate;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 #root {
   min-height: 100vh;
 }
@@ -150,13 +163,15 @@ body {
 }
 
 .stardark-shell {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   position: relative;
+  overflow: hidden;
 }
 
 .stardark-sidebar {
   width: 250px;
+  height: 100vh;
   background: var(--panel-strong);
   border-right: 1px solid var(--border);
   padding: 24px 14px;
@@ -299,9 +314,16 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .stardark-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 11;
+  flex-shrink: 0;
   height: 66px;
   display: flex;
   align-items: center;
@@ -389,7 +411,11 @@ body {
 }
 
 .page-content {
+  flex: 1;
+  min-height: 0;
   padding: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .page-card,
@@ -758,6 +784,11 @@ body {
   margin: 0;
 }
 
+.product-card-hint {
+  font-size: 0.75rem;
+  color: color-mix(in srgb, var(--muted) 88%, transparent);
+}
+
 .size-price-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -798,6 +829,114 @@ body {
 
 .product-card-body .primary-btn {
   width: 100%;
+}
+
+.product-detail-trigger {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--input-bg) 84%, transparent);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard);
+}
+
+.product-detail-trigger:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 56%, var(--border));
+  background: color-mix(in srgb, var(--menu-hover) 72%, transparent);
+}
+
+.product-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.52);
+}
+
+.product-detail-modal {
+  width: min(500px, 100%);
+  /* max-height: calc(100vh); */
+  overflow: auto;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: linear-gradient(165deg, var(--panel-strong), color-mix(in srgb, var(--panel-strong) 86%, #000 14%));
+  box-shadow: 0 20px 42px var(--shadow-strong);
+  padding: 16px;
+}
+
+.product-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.product-detail-header h4 {
+  margin: 0;
+}
+
+.product-detail-close {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+}
+
+.product-detail-image {
+  width: 100%;
+  height: 210px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--product-image-bg);
+}
+
+.product-detail-info {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.product-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--list-divider);
+}
+
+.product-detail-row:last-child {
+  border-bottom: 0;
+}
+
+.product-detail-row span {
+  color: var(--muted);
+}
+
+.product-detail-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.product-detail-actions .product-detail-trigger {
+  width: auto;
+  min-width: 110px;
 }
 
 .filter-toolbar {
@@ -2082,6 +2221,14 @@ body {
 
   .inventory-modal-card {
     padding: 14px;
+  }
+
+  .product-detail-modal {
+    padding: 14px;
+  }
+
+  .product-detail-image {
+    height: 170px;
   }
 
   .inventory-modal-form {
