@@ -9,6 +9,7 @@ const menuItems = [
   { labelKey: "nav.dashboard", to: "/dashboard", icon: "dashboard", roles: ["Admin", "Cashier"] },
   { labelKey: "nav.inventoryManagement", to: "/inventory-management", icon: "inventory", roles: ["Admin"] },
   { labelKey: "nav.reports", to: "/reports", icon: "reports", roles: ["Admin"] },
+  { labelKey: "nav.auditLogs", to: "/audit-logs", icon: "audit", roles: ["Admin"] },
   { labelKey: "nav.settings", to: "/settings", icon: "settings", roles: ["Admin", "Cashier"] },
 ];
 
@@ -110,6 +111,18 @@ function MainLayout() {
           <path d="M8 8h8" />
           <path d="M8 12h5" />
           <path d="m14 16 2 2 3-4" />
+        </svg>
+      );
+    }
+
+    if (iconName === "audit") {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M8 3h8l3 3v15a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+          <path d="M16 3v4h4" />
+          <path d="M9 11h6" />
+          <path d="M9 15h6" />
+          <path d="M9 19h4" />
         </svg>
       );
     }

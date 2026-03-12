@@ -22,6 +22,9 @@ export const routes = {
     uploadImage: (productId) => `/products/${productId}/image`,
     adjustStock: (productId) => `/products/${productId}/adjust-stock`,
   },
+  auditLogs: {
+    root: "/audit-logs",
+  },
 };
 
 const unwrap = (requestPromise) => requestPromise.then((res) => res.data);
@@ -63,6 +66,9 @@ const gateway = {
       unwrap(api.get(routes.products.inventorySummary, { params })),
     adjustStock: (productId, payload) =>
       unwrap(api.post(routes.products.adjustStock(productId), payload)),
+  },
+  auditLogs: {
+    getAll: (params) => unwrap(api.get(routes.auditLogs.root, { params })),
   },
 };
 

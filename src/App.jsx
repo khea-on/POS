@@ -46,6 +46,7 @@ import Register from "./pages/Register";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import InventoryManagement from "./pages/InventoryManagement";
+import AuditLogs from "./pages/AuditLogs";
 
 function App() {
   const baseUrl = import.meta.env.BASE_URL || "/";
@@ -86,6 +87,14 @@ function App() {
             element={(
               <RoleProtectedRoute allowedRoles={["Admin"]}>
                 <Reports />
+              </RoleProtectedRoute>
+            )}
+          />
+          <Route
+            path="/audit-logs"
+            element={(
+              <RoleProtectedRoute allowedRoles={["Admin"]}>
+                <AuditLogs />
               </RoleProtectedRoute>
             )}
           />
