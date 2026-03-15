@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
+import {
+  convertKhrToUsd,
+  convertUsdToKhr,
+  formatUsdAsKhr,
+  formatUsdAsKhrInputValue,
+} from "../utils/currency";
 
 const DEFAULT_LOW_STOCK_THRESHOLD = 10;
 const REQUIRED_IMPORT_HEADERS = ["name", "sku"];
@@ -137,7 +143,7 @@ const toCsvCell = (value) => {
 };
 
 function InventoryManagement() {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const importFileInputRef = useRef(null);
   const productImageInputRef = useRef(null);
   const [lowStockThreshold, setLowStockThreshold] = useState(DEFAULT_LOW_STOCK_THRESHOLD);
@@ -264,9 +270,9 @@ function InventoryManagement() {
       name: product.name || "",
       sku: product.sku || "",
       imageUrl: product.imageUrl || "",
-      smallPrice: String(Number(product.smallPrice ?? product.price ?? 0)),
-      mediumPrice: String(Number(product.mediumPrice ?? product.price ?? 0)),
-      largePrice: String(Number(product.largePrice ?? product.price ?? 0)),
+      smallPrice: formatUsdAsKhrInputValue(product.smallPrice ?? product.price ?? 0),
+      mediumPrice: formatUsdAsKhrInputValue(product.mediumPrice ?? product.price ?? 0),
+      largePrice: formatUsdAsKhrInputValue(product.largePrice ?? product.price ?? 0),
       stockQuantity: String(Number(product.stockQuantity ?? 0)),
       isActive: Boolean(product.isActive),
     });
@@ -284,10 +290,10 @@ function InventoryManagement() {
         name: addProductForm.name.trim(),
         sku: addProductForm.sku.trim(),
         imageUrl: addProductForm.imageUrl.trim() || null,
-        price: Number(addProductForm.mediumPrice || 0),
-        smallPrice: Number(addProductForm.smallPrice || 0),
-        mediumPrice: Number(addProductForm.mediumPrice || 0),
-        largePrice: Number(addProductForm.largePrice || 0),
+        price: convertKhrToUsd(addProductForm.mediumPrice || 0),
+        smallPrice: convertKhrToUsd(addProductForm.smallPrice || 0),
+        mediumPrice: convertKhrToUsd(addProductForm.mediumPrice || 0),
+        largePrice: convertKhrToUsd(addProductForm.largePrice || 0),
         stockQuantity: Number(addProductForm.stockQuantity || 0),
         isActive: Boolean(addProductForm.isActive),
       };
@@ -459,10 +465,10 @@ function InventoryManagement() {
             name,
             sku,
             imageUrl: imageUrl || null,
-            price: mediumPrice,
-            smallPrice,
-            mediumPrice,
-            largePrice,
+            price: convertKhrToUsd(mediumPrice),
+            smallPrice: smallPrice === null ? null : convertKhrToUsd(smallPrice),
+            mediumPrice: convertKhrToUsd(mediumPrice),
+            largePrice: largePrice === null ? null : convertKhrToUsd(largePrice),
             stockQuantity: stockQuantity ?? 0,
             isActive,
           },
@@ -532,9 +538,17 @@ function InventoryManagement() {
             toCsvCell(product.name || ""),
             toCsvCell(product.sku || ""),
             toCsvCell(product.imageUrl || ""),
-            toCsvCell(product.smallPrice ?? ""),
-            toCsvCell(product.mediumPrice ?? product.price ?? ""),
-            toCsvCell(product.largePrice ?? ""),
+            toCsvCell(
+              product.smallPrice === null || product.smallPrice === undefined
+                ? ""
+                : convertUsdToKhr(product.smallPrice)
+            ),
+            toCsvCell(convertUsdToKhr(product.mediumPrice ?? product.price ?? "")),
+            toCsvCell(
+              product.largePrice === null || product.largePrice === undefined
+                ? ""
+                : convertUsdToKhr(product.largePrice)
+            ),
             toCsvCell(Number(product.stockQuantity || 0)),
             toCsvCell(Boolean(product.isActive)),
           ].join(",")
@@ -754,7 +768,7 @@ function InventoryManagement() {
                 <input
                   className="inventory-modal-input"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   value={addProductForm.smallPrice}
                   onChange={(event) =>
@@ -769,7 +783,7 @@ function InventoryManagement() {
                 <input
                   className="inventory-modal-input"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   value={addProductForm.mediumPrice}
                   onChange={(event) =>
@@ -784,7 +798,7 @@ function InventoryManagement() {
                 <input
                   className="inventory-modal-input"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   value={addProductForm.largePrice}
                   onChange={(event) =>
@@ -939,7 +953,7 @@ function InventoryManagement() {
                   </div>
                   <div className="inventory-row-text">{getCategory(product)}</div>
                   <div className="inventory-row-text">
-                    ${Number(product.mediumPrice ?? product.price ?? 0).toFixed(2)}
+                    {formatUsdAsKhr(Number(product.mediumPrice ?? product.price ?? 0), language)}
                   </div>
                   <div className="inventory-row-text">{stock}</div>
                   <div>

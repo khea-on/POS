@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
+import { formatUsdAsKhr } from "../utils/currency";
 
 const LINE_CHART_WIDTH = 700;
 const LINE_CHART_HEIGHT = 220;
@@ -42,7 +43,7 @@ const toArray = (value) => {
 };
 
 function Dashboard() {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -248,14 +249,14 @@ function Dashboard() {
       <div className="page-card dashboard-card">
         <div className="card-icon" aria-hidden="true">💰</div>
         <h2>{t("dashboard.salesToday")}</h2>
-        <p className="dashboard-value">${stats.salesToday.toFixed(2)}</p>
+        <p className="dashboard-value">{formatUsdAsKhr(stats.salesToday, language)}</p>
         <p className="muted-text">{t("dashboard.ordersToday", { count: stats.ordersToday })}</p>
       </div>
 
       <div className="page-card dashboard-card">
         <div className="card-icon" aria-hidden="true">📈</div>
         <h2>{t("dashboard.totalSales")}</h2>
-        <p className="dashboard-value">${stats.totalSales.toFixed(2)}</p>
+        <p className="dashboard-value">{formatUsdAsKhr(stats.totalSales, language)}</p>
         <p className="muted-text">{t("dashboard.allTimeCompletedSales")}</p>
       </div>
 

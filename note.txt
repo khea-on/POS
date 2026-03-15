@@ -34,8 +34,8 @@ npm run build
 robocopy .\dist C:\inetpub\wwwroot\POS /MIR
 iisreset
 
-cd /d C:\Users\ROG\Documents\ReactJs\POS
-call npm run build:iisroot
+cd 'C:\Users\ROG\Documents\ReactJs\POS'
+npm run build:iisroot
 robocopy dist C:\inetpub\wwwroot\POS /MIR 
 
 

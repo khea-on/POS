@@ -47,6 +47,7 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import InventoryManagement from "./pages/InventoryManagement";
 import AuditLogs from "./pages/AuditLogs";
+import HelpGuide from "./pages/HelpGuide";
 
 function App() {
   const baseUrl = import.meta.env.BASE_URL || "/";
@@ -98,6 +99,7 @@ function App() {
               </RoleProtectedRoute>
             )}
           />
+          <Route path="/help" element={<HelpGuide />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>

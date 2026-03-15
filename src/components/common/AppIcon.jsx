@@ -143,6 +143,16 @@ function AppIcon({ name, className = "", title }) {
       );
     }
 
+    if (name === "help") {
+      return (
+        <svg {...commonProps}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.8 9.2a2.4 2.4 0 1 1 4.2 1.6c-.7.7-1.7 1.2-2 2.4" />
+          <path d="M12 17h.01" />
+        </svg>
+      );
+    }
+
     if (name === "cancel") {
       return (
         <svg {...commonProps}>
@@ -171,6 +181,15 @@ function AppIcon({ name, className = "", title }) {
           <path d="M5 4h11l3 3v13H5z" />
           <path d="M8 4v6h7V4" />
           <path d="M8 20v-6h8v6" />
+        </svg>
+      );
+    }
+
+    if (name === "send") {
+      return (
+        <svg {...commonProps}>
+          <path d="M21 3 3 10.5l7.5 3L14 21z" />
+          <path d="M10.5 13.5 21 3" />
         </svg>
       );
     }
@@ -224,6 +243,40 @@ function AppIcon({ name, className = "", title }) {
           <path d="M7 4h10v16l-2-1.6L13 20l-2-1.6L9 20l-2-1.6L5 20V6a2 2 0 0 1 2-2Z" />
           <path d="M9 9h6" />
           <path d="M9 13h6" />
+        </svg>
+      );
+    }
+
+    if (name === "dashboard") {
+      return (
+        <svg {...commonProps}>
+          <rect x="3" y="3" width="8" height="8" rx="1.5" />
+          <rect x="13" y="3" width="8" height="5" rx="1.5" />
+          <rect x="13" y="10" width="8" height="11" rx="1.5" />
+          <rect x="3" y="13" width="8" height="8" rx="1.5" />
+        </svg>
+      );
+    }
+
+    if (name === "reports") {
+      return (
+        <svg {...commonProps}>
+          <path d="M5 20V10" />
+          <path d="M12 20V5" />
+          <path d="M19 20v-7" />
+          <path d="M3 20h18" />
+        </svg>
+      );
+    }
+
+    if (name === "audit") {
+      return (
+        <svg {...commonProps}>
+          <path d="M8 3h8l3 3v15a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+          <path d="M16 3v4h4" />
+          <path d="M9 11h6" />
+          <path d="M9 15h6" />
+          <path d="M9 19h4" />
         </svg>
       );
     }

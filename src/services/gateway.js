@@ -25,6 +25,9 @@ export const routes = {
   auditLogs: {
     root: "/audit-logs",
   },
+  integrations: {
+    telegramTest: "/integrations/telegram/test",
+  },
 };
 
 const unwrap = (requestPromise) => requestPromise.then((res) => res.data);
@@ -69,6 +72,10 @@ const gateway = {
   },
   auditLogs: {
     getAll: (params) => unwrap(api.get(routes.auditLogs.root, { params })),
+  },
+  integrations: {
+    sendTelegramTest: (payload) =>
+      unwrap(api.post(routes.integrations.telegramTest, payload)),
   },
 };
 

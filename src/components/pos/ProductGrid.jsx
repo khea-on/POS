@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import useI18n from "../../i18n/useI18n";
 import gateway from "../../services/gateway";
 import AppIcon from "../common/AppIcon";
+import { convertKhrToUsd, formatUsdAsKhr } from "../../utils/currency";
 
 const getItemImageUrl = (item) => {
   if (item?.imageUrl) {
@@ -33,7 +34,7 @@ const getPriceBySize = (item, size) => {
 };
 
 function ProductGrid({ onAddItem }) {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const [products, setProducts] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState({});
   const [detailProduct, setDetailProduct] = useState(null);
@@ -73,8 +74,8 @@ function ProductGrid({ onAddItem }) {
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const min = minPrice !== "" ? Number(minPrice) : null;
-    const max = maxPrice !== "" ? Number(maxPrice) : null;
+    const min = minPrice !== "" ? convertKhrToUsd(minPrice) : null;
+    const max = maxPrice !== "" ? convertKhrToUsd(maxPrice) : null;
 
     let result = [...products].filter((p) => {
       const name = String(p.name || "").toLowerCase();
@@ -173,15 +174,15 @@ function ProductGrid({ onAddItem }) {
           </div>
           <div className="product-detail-row">
             <span>{t("productGrid.sizeS")}</span>
-            <strong>${getPriceBySize(detailProduct, "Small").toFixed(2)}</strong>
+            <strong>{formatUsdAsKhr(getPriceBySize(detailProduct, "Small"), language)}</strong>
           </div>
           <div className="product-detail-row">
             <span>{t("productGrid.sizeM")}</span>
-            <strong>${getPriceBySize(detailProduct, "Medium").toFixed(2)}</strong>
+            <strong>{formatUsdAsKhr(getPriceBySize(detailProduct, "Medium"), language)}</strong>
           </div>
           <div className="product-detail-row">
             <span>{t("productGrid.sizeL")}</span>
-            <strong>${getPriceBySize(detailProduct, "Large").toFixed(2)}</strong>
+            <strong>{formatUsdAsKhr(getPriceBySize(detailProduct, "Large"), language)}</strong>
           </div>
         </div>
 
@@ -222,7 +223,7 @@ function ProductGrid({ onAddItem }) {
         <input
           className="filter-input filter-mini"
           type="number"
-          step="0.01"
+          step="1"
           placeholder={t("productGrid.minPrice")}
           value={minPrice}
           onChange={(e) => setMinPrice(e.target.value)}
@@ -230,7 +231,7 @@ function ProductGrid({ onAddItem }) {
         <input
           className="filter-input filter-mini"
           type="number"
-          step="0.01"
+          step="1"
           placeholder={t("productGrid.maxPrice")}
           value={maxPrice}
           onChange={(e) => setMaxPrice(e.target.value)}
@@ -262,9 +263,9 @@ function ProductGrid({ onAddItem }) {
               <div className="product-card-body">
                 <h4>{p.name}</h4>
                 <div className="size-price-list">
-                  <div>{t("productGrid.sizeS")}: ${getPriceBySize(p, "Small").toFixed(2)}</div>
-                  <div>{t("productGrid.sizeM")}: ${getPriceBySize(p, "Medium").toFixed(2)}</div>
-                  <div>{t("productGrid.sizeL")}: ${getPriceBySize(p, "Large").toFixed(2)}</div>
+                  <div>{t("productGrid.sizeS")}: {formatUsdAsKhr(getPriceBySize(p, "Small"), language)}</div>
+                  <div>{t("productGrid.sizeM")}: {formatUsdAsKhr(getPriceBySize(p, "Medium"), language)}</div>
+                  <div>{t("productGrid.sizeL")}: {formatUsdAsKhr(getPriceBySize(p, "Large"), language)}</div>
                 </div>
                 <p className="product-card-hint">{t("productGrid.doubleClickForDetail")}</p>
                 <div className="size-selector">
@@ -321,5 +322,4 @@ function ProductGrid({ onAddItem }) {
 }
 
 export default ProductGrid;
-
 

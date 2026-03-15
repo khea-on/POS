@@ -10,6 +10,7 @@ const menuItems = [
   { labelKey: "nav.inventoryManagement", to: "/inventory-management", icon: "inventory", roles: ["Admin"] },
   { labelKey: "nav.reports", to: "/reports", icon: "reports", roles: ["Admin"] },
   { labelKey: "nav.auditLogs", to: "/audit-logs", icon: "audit", roles: ["Admin"] },
+  { labelKey: "nav.help", to: "/help", icon: "help", roles: ["Admin", "Cashier"] },
   { labelKey: "nav.settings", to: "/settings", icon: "settings", roles: ["Admin", "Cashier"] },
 ];
 
@@ -123,6 +124,16 @@ function MainLayout() {
           <path d="M9 11h6" />
           <path d="M9 15h6" />
           <path d="M9 19h4" />
+        </svg>
+      );
+    }
+
+    if (iconName === "help") {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.8 9.2a2.4 2.4 0 1 1 4.2 1.6c-.7.7-1.7 1.2-2 2.4" />
+          <path d="M12 17h.01" />
         </svg>
       );
     }

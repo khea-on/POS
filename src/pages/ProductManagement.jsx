@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
+import {
+  convertKhrToUsd,
+  formatUsdAsKhr,
+  formatUsdAsKhrInputValue,
+} from "../utils/currency";
 
 const defaultProductForm = {
   name: "",
@@ -15,7 +20,7 @@ const defaultProductForm = {
 };
 
 function ProductManagement() {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -59,8 +64,8 @@ function ProductManagement() {
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const min = minPrice !== "" ? Number(minPrice) : null;
-    const max = maxPrice !== "" ? Number(maxPrice) : null;
+    const min = minPrice !== "" ? convertKhrToUsd(minPrice) : null;
+    const max = maxPrice !== "" ? convertKhrToUsd(maxPrice) : null;
 
     let result = [...products].filter((p) => {
       const name = String(p.name || "").toLowerCase();
@@ -122,10 +127,10 @@ function ProductManagement() {
       name: productForm.name.trim(),
       sku: productForm.sku.trim(),
       imageUrl: productForm.imageUrl.trim() || null,
-      price: Number(productForm.mediumPrice || 0),
-      smallPrice: Number(productForm.smallPrice || 0),
-      mediumPrice: Number(productForm.mediumPrice || 0),
-      largePrice: Number(productForm.largePrice || 0),
+      price: convertKhrToUsd(productForm.mediumPrice || 0),
+      smallPrice: convertKhrToUsd(productForm.smallPrice || 0),
+      mediumPrice: convertKhrToUsd(productForm.mediumPrice || 0),
+      largePrice: convertKhrToUsd(productForm.largePrice || 0),
       stockQuantity: Number(productForm.stockQuantity || 0),
       isActive: productForm.isActive,
     };
@@ -173,9 +178,9 @@ function ProductManagement() {
       name: product.name || "",
       sku: product.sku || "",
       imageUrl: product.imageUrl || "",
-      smallPrice: String(Number(product.smallPrice ?? product.price ?? 0)),
-      mediumPrice: String(Number(product.mediumPrice ?? product.price ?? 0)),
-      largePrice: String(Number(product.largePrice ?? product.price ?? 0)),
+      smallPrice: formatUsdAsKhrInputValue(product.smallPrice ?? product.price ?? 0),
+      mediumPrice: formatUsdAsKhrInputValue(product.mediumPrice ?? product.price ?? 0),
+      largePrice: formatUsdAsKhrInputValue(product.largePrice ?? product.price ?? 0),
       stockQuantity: String(Number(product.stockQuantity ?? 0)),
       isActive: Boolean(product.isActive),
     });
@@ -281,7 +286,7 @@ function ProductManagement() {
           <input
             className="filter-input filter-mini"
             type="number"
-            step="0.01"
+            step="1"
             placeholder={t("productManagement.minPrice")}
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
@@ -289,7 +294,7 @@ function ProductManagement() {
           <input
             className="filter-input filter-mini"
             type="number"
-            step="0.01"
+            step="1"
             placeholder={t("productManagement.maxPrice")}
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
@@ -352,7 +357,7 @@ function ProductManagement() {
           ) : null}
           <input
             type="number"
-            step="0.01"
+            step="1"
             placeholder={t("productManagement.smallPrice")}
             value={productForm.smallPrice}
             onChange={(e) => setProductForm((prev) => ({ ...prev, smallPrice: e.target.value }))}
@@ -360,7 +365,7 @@ function ProductManagement() {
           />
           <input
             type="number"
-            step="0.01"
+            step="1"
             placeholder={t("productManagement.mediumPrice")}
             value={productForm.mediumPrice}
             onChange={(e) => setProductForm((prev) => ({ ...prev, mediumPrice: e.target.value }))}
@@ -368,7 +373,7 @@ function ProductManagement() {
           />
           <input
             type="number"
-            step="0.01"
+            step="1"
             placeholder={t("productManagement.largePrice")}
             value={productForm.largePrice}
             onChange={(e) => setProductForm((prev) => ({ ...prev, largePrice: e.target.value }))}
@@ -424,9 +429,9 @@ function ProductManagement() {
                   {product.name} ({product.sku})
                 </div>
                 <div className="muted-text">
-                  S ${Number(product.smallPrice ?? product.price).toFixed(2)} | M $
-                  {Number(product.mediumPrice ?? product.price).toFixed(2)} | L $
-                  {Number(product.largePrice ?? product.price).toFixed(2)} | {t("productManagement.stockLabel")}{" "}
+                  S {formatUsdAsKhr(Number(product.smallPrice ?? product.price), language)} | M{" "}
+                  {formatUsdAsKhr(Number(product.mediumPrice ?? product.price), language)} | L{" "}
+                  {formatUsdAsKhr(Number(product.largePrice ?? product.price), language)} | {t("productManagement.stockLabel")}{" "}
                   {Number(product.stockQuantity || 0)}
                 </div>
               </div>

@@ -56,6 +56,10 @@ function Settings() {
   const [userForm, setUserForm] = useState(DEFAULT_USER_FORM);
   const [savingUser, setSavingUser] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState(null);
+  const [telegramTestMessage, setTelegramTestMessage] = useState("");
+  const [sendingTelegramTest, setSendingTelegramTest] = useState(false);
+  const [telegramStatusMessage, setTelegramStatusMessage] = useState("");
+  const [telegramStatusError, setTelegramStatusError] = useState("");
 
   const currentUsername = localStorage.getItem("username") || "";
   const currentRole = profile?.role || localStorage.getItem("role") || "";
@@ -295,6 +299,32 @@ function Settings() {
       setSettingsError(err.response?.data || t("settings.failedToUpdateUserImage"));
     } finally {
       setSavingImage(false);
+    }
+  };
+
+  const handleSendTelegramTest = async () => {
+    if (!isAdmin) {
+      return;
+    }
+
+    setSendingTelegramTest(true);
+    setTelegramStatusMessage("");
+    setTelegramStatusError("");
+
+    try {
+      const data = await gateway.integrations.sendTelegramTest({
+        message: telegramTestMessage.trim() || null,
+      });
+      setTelegramStatusMessage(data?.message || t("settings.telegramTestSuccess"));
+    } catch (err) {
+      const apiError = err.response?.data;
+      if (typeof apiError === "string" && apiError.trim()) {
+        setTelegramStatusError(apiError);
+      } else {
+        setTelegramStatusError(t("settings.telegramTestFailed"));
+      }
+    } finally {
+      setSendingTelegramTest(false);
     }
   };
 
@@ -561,6 +591,30 @@ function Settings() {
           </div>
         )}
       </div>
+
+      {isAdmin ? (
+        <div className="settings-image-section">
+          <h3>{t("settings.telegramTitle")}</h3>
+          <p className="muted-text">{t("settings.telegramDescription")}</p>
+          <input
+            placeholder={t("settings.telegramPlaceholder")}
+            value={telegramTestMessage}
+            onChange={(event) => setTelegramTestMessage(event.target.value)}
+          />
+          <button
+            className="primary-btn btn-with-icon"
+            type="button"
+            onClick={handleSendTelegramTest}
+            disabled={sendingTelegramTest}
+          >
+            <AppIcon name="send" />
+            {sendingTelegramTest ? t("settings.telegramSending") : t("settings.telegramSendTest")}
+          </button>
+          {telegramStatusMessage ? <p className="success-text">{telegramStatusMessage}</p> : null}
+          {telegramStatusError ? <p className="form-error">{telegramStatusError}</p> : null}
+          <p className="muted-text">{t("settings.telegramConfigHint")}</p>
+        </div>
+      ) : null}
 
       <div className="settings-image-section">
         <h3>{t("settings.userImage")}</h3>

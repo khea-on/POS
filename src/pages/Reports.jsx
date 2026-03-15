@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
+import { formatUsdAsKhr } from "../utils/currency";
 
 function Reports() {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -89,13 +90,13 @@ function Reports() {
     <div className="reports-grid">
       <div className="page-card report-card">
         <h2>{t("reports.dailyReport")}</h2>
-        <p className="dashboard-value">${report.dailySales.toFixed(2)}</p>
+        <p className="dashboard-value">{formatUsdAsKhr(report.dailySales, language)}</p>
         <p className="muted-text">{t("reports.ordersToday", { count: report.dailyOrders })}</p>
       </div>
 
       <div className="page-card report-card">
         <h2>{t("reports.monthlySalesReport")}</h2>
-        <p className="dashboard-value">${report.monthlySales.toFixed(2)}</p>
+        <p className="dashboard-value">{formatUsdAsKhr(report.monthlySales, language)}</p>
         <p className="muted-text">{t("reports.ordersThisMonth", { count: report.monthlyOrders })}</p>
       </div>
 
@@ -110,7 +111,7 @@ function Reports() {
                 {item.name} ({item.size})
               </span>
               <span>
-                {t("reports.qty")} {item.qty} | ${item.total.toFixed(2)}
+                {t("reports.qty")} {item.qty} | {formatUsdAsKhr(item.total, language)}
               </span>
             </div>
           ))

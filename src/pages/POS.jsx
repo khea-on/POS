@@ -4,6 +4,7 @@ import Cart from "../components/pos/Cart";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
+import { convertUsdToKhr, formatUsdAsKhr } from "../utils/currency";
 
 const POS_CART_STORAGE_KEY = "pos.cart.items.v1";
 
@@ -41,8 +42,50 @@ const loadStoredCartItems = () => {
   }
 };
 
+const createOrderRangeBoundary = (dateValue, mode) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+  if (!match) {
+    return null;
+  }
+
+  const [, year, month, day] = match;
+  return mode === "end"
+    ? new Date(Number(year), Number(month) - 1, Number(day) + 1, 0, 0, 0, 0)
+    : new Date(Number(year), Number(month) - 1, Number(day), 0, 0, 0, 0);
+};
+
+const buildOrderRangeParams = (fromDateValue, toDateValue) => {
+  const params = {};
+  const fromBoundary = createOrderRangeBoundary(fromDateValue, "start");
+  const toBoundary = createOrderRangeBoundary(toDateValue, "end");
+
+  if (fromBoundary) {
+    params.fromUtc = fromBoundary.toISOString();
+  }
+
+  if (toBoundary) {
+    params.toUtc = toBoundary.toISOString();
+  }
+
+  return params;
+};
+
+const escapeCsvValue = (value) => {
+  const stringValue = String(value ?? "");
+  if (!/[",\r\n]/.test(stringValue)) {
+    return stringValue;
+  }
+
+  return `"${stringValue.replaceAll('"', '""')}"`;
+};
+
+const buildOrdersCsvFileName = (fromDateValue, toDateValue) => {
+  const suffix = [fromDateValue || "all", toDateValue || "all"].join("_to_");
+  return `orders-invoice-list-${suffix}.csv`;
+};
+
 function POS() {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const isAdmin = (localStorage.getItem("role") || "") === "Admin";
   const [activeScreen, setActiveScreen] = useState("items");
   const [cartItems, setCartItems] = useState(() => loadStoredCartItems());
@@ -57,6 +100,8 @@ function POS() {
   const cartHighlightTimeoutRef = useRef(null);
   const [recentAddToken, setRecentAddToken] = useState(0);
   const [highlightedCartKey, setHighlightedCartKey] = useState("");
+  const [invoiceFromDate, setInvoiceFromDate] = useState("");
+  const [invoiceToDate, setInvoiceToDate] = useState("");
 
   const getDisplaySize = useCallback((size) => {
     if (size === "Small") return t("common.sizeSmall");
@@ -64,10 +109,10 @@ function POS() {
     return t("common.sizeMedium");
   }, [t]);
 
-  const loadOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async (params) => {
     setLoadingOrders(true);
     try {
-      const data = await gateway.orders.getAll();
+      const data = await gateway.orders.getAll(params);
       setOrders(data || []);
     } catch {
       setError(t("pos.couldNotLoadOrderList"));
@@ -77,8 +122,8 @@ function POS() {
   }, [t]);
 
   useEffect(() => {
-    loadOrders();
-  }, [loadOrders]);
+    fetchOrders();
+  }, [fetchOrders]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -168,6 +213,17 @@ function POS() {
     [orders]
   );
 
+  const hasInvalidInvoiceRange =
+    invoiceFromDate && invoiceToDate && invoiceToDate < invoiceFromDate;
+
+  const getPaymentMethodLabel = useCallback((method) => {
+    if (method === 1) return "Cash";
+    if (method === 2) return "Card";
+    if (method === 3) return "Transfer";
+    if (method === 4) return "Other";
+    return "Unknown";
+  }, []);
+
   const notifyCheckoutSuccess = async (message) => {
     if (typeof window === "undefined") {
       return;
@@ -236,7 +292,7 @@ function POS() {
         : t("pos.checkoutComplete");
       setSuccess(successMessage);
       await notifyCheckoutSuccess(successMessage);
-      await loadOrders();
+      await fetchOrders(buildOrderRangeParams(invoiceFromDate, invoiceToDate));
     } catch (err) {
       const apiError = err.response?.data;
       if (typeof apiError === "string" && apiError.trim()) {
@@ -276,14 +332,14 @@ function POS() {
       .map((item) => {
         const productName = item.product?.name || `Product #${item.productId}`;
         const size = getDisplaySize(item.size || "Medium");
-        const unitPrice = Number(item.unitPrice || 0).toFixed(2);
-        const lineTotal = Number(item.lineTotal || 0).toFixed(2);
+        const unitPrice = formatUsdAsKhr(Number(item.unitPrice || 0), language);
+        const lineTotal = formatUsdAsKhr(Number(item.lineTotal || 0), language);
         return `
           <div class="receipt-item">
             <div class="item-name">${escapeHtml(productName)} (${escapeHtml(size)})</div>
             <div class="item-meta">
-              <span>${item.quantity} x $${unitPrice}</span>
-              <span>$${lineTotal}</span>
+              <span>${item.quantity} x ${escapeHtml(unitPrice)}</span>
+              <span>${escapeHtml(lineTotal)}</span>
             </div>
           </div>
         `;
@@ -374,10 +430,10 @@ function POS() {
             ${itemsHtml || `<div class="center">${escapeHtml(t("pos.noItems"))}</div>`}
             <div class="divider"></div>
 
-            <div class="line"><span>${escapeHtml(t("pos.subtotal"))}</span><span>$${Number(order.subtotal || 0).toFixed(2)}</span></div>
-            <div class="line"><span>${escapeHtml(t("pos.tax"))}</span><span>$${Number(order.taxAmount || 0).toFixed(2)}</span></div>
-            <div class="line total"><span>${escapeHtml(t("pos.total"))}</span><span>$${Number(order.totalAmount || 0).toFixed(2)}</span></div>
-            <div class="line"><span>${escapeHtml(t("pos.paid"))}</span><span>$${paymentTotal.toFixed(2)}</span></div>
+            <div class="line"><span>${escapeHtml(t("pos.subtotal"))}</span><span>${escapeHtml(formatUsdAsKhr(Number(order.subtotal || 0), language))}</span></div>
+            <div class="line"><span>${escapeHtml(t("pos.tax"))}</span><span>${escapeHtml(formatUsdAsKhr(Number(order.taxAmount || 0), language))}</span></div>
+            <div class="line total"><span>${escapeHtml(t("pos.total"))}</span><span>${escapeHtml(formatUsdAsKhr(Number(order.totalAmount || 0), language))}</span></div>
+            <div class="line"><span>${escapeHtml(t("pos.paid"))}</span><span>${escapeHtml(formatUsdAsKhr(paymentTotal, language))}</span></div>
 
             <div class="divider"></div>
             <p class="footer">${escapeHtml(t("pos.thankYou"))}</p>
@@ -417,7 +473,7 @@ function POS() {
     try {
       await gateway.orders.cancel(orderId);
       setSuccess(t("pos.orderCancelled", { id: orderId }));
-      await loadOrders();
+      await fetchOrders(buildOrderRangeParams(invoiceFromDate, invoiceToDate));
     } catch (err) {
       const apiError = err.response?.data;
       if (typeof apiError === "string" && apiError.trim()) {
@@ -428,6 +484,106 @@ function POS() {
         setError(t("pos.failedToCancelOrder"));
       }
     }
+  };
+
+  const handleSearchOrders = async () => {
+    setError("");
+    setSuccess("");
+
+    if (hasInvalidInvoiceRange) {
+      setError(t("pos.invalidInvoiceDateRange"));
+      return;
+    }
+
+    await fetchOrders(buildOrderRangeParams(invoiceFromDate, invoiceToDate));
+  };
+
+  const handleClearOrderFilters = async () => {
+    setError("");
+    setSuccess("");
+    setInvoiceFromDate("");
+    setInvoiceToDate("");
+    await fetchOrders();
+  };
+
+  const handleExportOrdersCsv = () => {
+    setError("");
+    setSuccess("");
+
+    if (hasInvalidInvoiceRange) {
+      setError(t("pos.invalidInvoiceDateRange"));
+      return;
+    }
+
+    if (orders.length === 0) {
+      setError(t("pos.noOrdersToExport"));
+      return;
+    }
+
+    const headers = [
+      "Order ID",
+      "Created At",
+      "Status",
+      "Items",
+      "Quantity",
+      "Subtotal (KHR)",
+      "Tax (KHR)",
+      "Total (KHR)",
+      "Paid (KHR)",
+      "Payment Methods",
+      "Order Lines",
+    ];
+
+    const rows = orders.map((order) => {
+      const quantity = (order.items || []).reduce(
+        (sum, item) => sum + Number(item.quantity || 0),
+        0
+      );
+      const paidAmount = (order.payments || []).reduce(
+        (sum, payment) => sum + Number(payment.amount || 0),
+        0
+      );
+      const paymentMethods = (order.payments || [])
+        .map((payment) => getPaymentMethodLabel(payment.method))
+        .join("; ");
+      const orderLines = (order.items || [])
+        .map((item) => {
+          const productName = item.product?.name || `Product #${item.productId}`;
+          const size = item.size || "Medium";
+          return `${productName} (${size}) x${item.quantity}`;
+        })
+        .join("; ");
+
+      return [
+        order.id,
+        new Date(order.createdAtUtc).toLocaleString(),
+        getStatusLabel(order.status),
+        (order.items || []).length,
+        quantity,
+        convertUsdToKhr(order.subtotal || 0),
+        convertUsdToKhr(order.taxAmount || 0),
+        convertUsdToKhr(order.totalAmount || 0),
+        convertUsdToKhr(paidAmount),
+        paymentMethods,
+        orderLines,
+      ];
+    });
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => escapeCsvValue(cell)).join(","))
+      .join("\r\n");
+
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: "text/csv;charset=utf-8;" });
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = buildOrdersCsvFileName(invoiceFromDate, invoiceToDate);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    setSuccess(t("pos.ordersCsvExported", { count: orders.length }));
   };
 
   return (
@@ -514,7 +670,7 @@ function POS() {
                           name: item.productName,
                           size: getDisplaySize(item.size),
                           quantity: item.quantity,
-                          total: item.lineTotal.toFixed(2),
+                          total: formatUsdAsKhr(item.lineTotal, language),
                         })}
                       </div>
                     </div>
@@ -526,43 +682,93 @@ function POS() {
 
           <div className="page-card">
             <h2>{t("pos.ordersInvoiceList")}</h2>
-            {orders.length === 0 ? (
+            <div className="audit-filters">
+              <label className="audit-field">
+                <span className="field-label">{t("pos.invoiceFromDate")}</span>
+                <input
+                  className="audit-input"
+                  type="date"
+                  value={invoiceFromDate}
+                  onChange={(e) => setInvoiceFromDate(e.target.value)}
+                />
+              </label>
+              <label className="audit-field">
+                <span className="field-label">{t("pos.invoiceToDate")}</span>
+                <input
+                  className="audit-input"
+                  type="date"
+                  value={invoiceToDate}
+                  onChange={(e) => setInvoiceToDate(e.target.value)}
+                />
+              </label>
+              <div className="audit-filter-actions">
+                <button
+                  className="primary-btn"
+                  type="button"
+                  disabled={loadingOrders}
+                  onClick={handleSearchOrders}
+                >
+                  {loadingOrders ? t("common.loading") : t("pos.filterOrders")}
+                </button>
+                <button
+                  className="audit-btn"
+                  type="button"
+                  disabled={loadingOrders}
+                  onClick={handleClearOrderFilters}
+                >
+                  {t("pos.clearOrderFilters")}
+                </button>
+                <button
+                  className="audit-btn"
+                  type="button"
+                  disabled={loadingOrders || orders.length === 0}
+                  onClick={handleExportOrdersCsv}
+                >
+                  {t("pos.exportOrdersCsv")}
+                </button>
+              </div>
+            </div>
+
+            {loadingOrders ? <p>{t("pos.loadingOrders")}</p> : null}
+            {!loadingOrders && orders.length === 0 ? (
               <p>{t("pos.noOrdersYet")}</p>
             ) : (
-              orders.slice(0, 10).map((order) => (
-                <div className="list-row invoice-row" key={order.id}>
-                  <div>
-                    <div>{t("pos.orderWithId", { id: order.id })}</div>
-                    <div className="muted-text">
-                      {t("pos.invoiceMetaLine", {
-                        date: new Date(order.createdAtUtc).toLocaleString(),
-                        total: Number(order.totalAmount || 0).toFixed(2),
-                        status: getStatusLabel(order.status),
-                      })}
+              <div className="invoice-list">
+                {orders.map((order) => (
+                  <div className="list-row invoice-row" key={order.id}>
+                    <div>
+                      <div>{t("pos.orderWithId", { id: order.id })}</div>
+                      <div className="muted-text">
+                        {t("pos.invoiceMetaLine", {
+                          date: new Date(order.createdAtUtc).toLocaleString(),
+                          total: formatUsdAsKhr(Number(order.totalAmount || 0), language),
+                          status: getStatusLabel(order.status),
+                        })}
+                      </div>
+                    </div>
+                    <div className="invoice-actions">
+                      <button
+                        className="primary-btn btn-with-icon"
+                        type="button"
+                        onClick={() => handlePrintInvoice(order)}
+                      >
+                        <AppIcon name="printer" />
+                        {t("pos.printInvoice")}
+                      </button>
+                      {isAdmin && order.status !== 3 ? (
+                        <button
+                          className="cancel-btn btn-with-icon"
+                          type="button"
+                          onClick={() => handleCancelOrder(order.id)}
+                        >
+                          <AppIcon name="cancel" />
+                          {t("common.cancel")}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
-                  <div className="invoice-actions">
-                    <button
-                      className="primary-btn btn-with-icon"
-                      type="button"
-                      onClick={() => handlePrintInvoice(order)}
-                    >
-                      <AppIcon name="printer" />
-                      {t("pos.printInvoice")}
-                    </button>
-                    {isAdmin && order.status !== 3 ? (
-                      <button
-                        className="cancel-btn btn-with-icon"
-                        type="button"
-                        onClick={() => handleCancelOrder(order.id)}
-                      >
-                        <AppIcon name="cancel" />
-                        {t("common.cancel")}
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </>

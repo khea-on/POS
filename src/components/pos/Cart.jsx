@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import useI18n from "../../i18n/useI18n";
 import AppIcon from "../common/AppIcon";
+import { formatUsdAsKhr } from "../../utils/currency";
 
 function Cart({
   items,
@@ -11,7 +12,7 @@ function Cart({
   recentAddToken,
   highlightedCartKey,
 }) {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const [isPanelPopping, setIsPanelPopping] = useState(false);
   const [showAddChip, setShowAddChip] = useState(false);
   const popTimerRef = useRef(null);
@@ -22,6 +23,7 @@ function Cart({
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsPanelPopping(true);
     setShowAddChip(true);
 
@@ -96,7 +98,7 @@ function Cart({
               <div>
                 {t("cart.itemLine", {
                   quantity: item.quantity,
-                  amount: (Number(item.price || 0) * item.quantity).toFixed(2),
+                  amount: formatUsdAsKhr(Number(item.price || 0) * item.quantity, language),
                 })}
               </div>
             </div>
@@ -111,7 +113,7 @@ function Cart({
           </div>
         ))
       )}
-      <p className="cart-total">{t("cart.total", { amount: totalAmount.toFixed(2) })}</p>
+      <p className="cart-total">{t("cart.total", { amount: formatUsdAsKhr(totalAmount, language) })}</p>
       <button
         className="primary-btn btn-with-icon"
         type="button"
@@ -126,5 +128,4 @@ function Cart({
 }
 
 export default Cart;
-
 
