@@ -19,8 +19,10 @@ npm run lint
 npm run build
 npm run build:iis
 npm run build:iisroot
+npm run build:iis5000
 npm run dev:iis5000
-npm run dev:local5012
+npm run dev:iis5000
+npm run dev:iisroot
 
 
 
@@ -38,6 +40,9 @@ cd 'C:\Users\ROG\Documents\ReactJs\POS'
 npm run build:iisroot
 robocopy dist C:\inetpub\wwwroot\POS /MIR 
 
+cd 'C:\Users\ROG\Documents\ReactJs\POS'
+npm run dev:iis5000
+robocopy dist C:\inetpub\wwwroot\POS /MIR 
 
 rg -n "http://localhost:5000/api|/POS/assets/|/POSAPI/api" dist -S
 

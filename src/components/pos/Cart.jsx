@@ -10,6 +10,7 @@ function Cart({
   onRemoveItem,
   checkoutLoading,
   recentAddToken,
+  recentAddQuantity,
   highlightedCartKey,
 }) {
   const { language, t } = useI18n();
@@ -73,7 +74,7 @@ function Cart({
       <div className="cart-title-row">
         <h3>{t("cart.title")}</h3>
         <span className={`cart-add-chip ${showAddChip ? "show" : ""}`} aria-hidden="true">
-          +1
+          +{recentAddQuantity || 1}
         </span>
       </div>
       {items.length === 0 ? (
@@ -128,4 +129,3 @@ function Cart({
 }
 
 export default Cart;
-

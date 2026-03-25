@@ -99,6 +99,7 @@ function POS() {
   const checkoutAlertTimeoutRef = useRef(null);
   const cartHighlightTimeoutRef = useRef(null);
   const [recentAddToken, setRecentAddToken] = useState(0);
+  const [recentAddQuantity, setRecentAddQuantity] = useState(1);
   const [highlightedCartKey, setHighlightedCartKey] = useState("");
   const [invoiceFromDate, setInvoiceFromDate] = useState("");
   const [invoiceToDate, setInvoiceToDate] = useState("");
@@ -155,6 +156,10 @@ function POS() {
   const handleAddItem = (item) => {
     const selectedSize = item.selectedSize || "Medium";
     const cartKey = `${item.id}-${selectedSize}`;
+    const parsedQuantity = Number.parseInt(String(item.quantity ?? 1), 10);
+    const addQuantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0
+      ? parsedQuantity
+      : 1;
 
     setError("");
     setSuccess("");
@@ -163,15 +168,16 @@ function POS() {
       if (existing) {
         return prevItems.map((cartItem) =>
           cartItem.cartKey === cartKey
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            ? { ...cartItem, quantity: cartItem.quantity + addQuantity }
             : cartItem
         );
       }
 
-      return [...prevItems, { ...item, selectedSize, cartKey, quantity: 1 }];
+      return [...prevItems, { ...item, selectedSize, cartKey, quantity: addQuantity }];
     });
 
     setHighlightedCartKey(cartKey);
+    setRecentAddQuantity(addQuantity);
     setRecentAddToken((prev) => prev + 1);
     if (cartHighlightTimeoutRef.current) {
       clearTimeout(cartHighlightTimeoutRef.current);
@@ -643,6 +649,7 @@ function POS() {
               onRemoveItem={handleRemoveItem}
               checkoutLoading={checkingOut}
               recentAddToken={recentAddToken}
+              recentAddQuantity={recentAddQuantity}
               highlightedCartKey={highlightedCartKey}
             />
           ) : null}

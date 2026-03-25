@@ -24,6 +24,8 @@ function MainLayout() {
     localStorage.getItem("theme") === "dark" ? "dark" : "light"
   );
   const userRole = localStorage.getItem("role") || "Cashier";
+  const username = localStorage.getItem("username") || "User";
+  const userInitial = username.slice(0, 1).toUpperCase();
 
   const visibleMenuItems = useMemo(
     () => menuItems.filter((item) => item.roles.includes(userRole)),
@@ -61,6 +63,13 @@ function MainLayout() {
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
+
+  const renderUserAvatar = (className = "") =>
+    profileImage ? (
+      <img className={`user-avatar ${className}`.trim()} src={profileImage} alt="User avatar" />
+    ) : (
+      <div className={`user-avatar user-avatar-fallback ${className}`.trim()}>{userInitial}</div>
+    );
 
   const renderMenuIcon = (iconName) => {
     if (iconName === "dashboard") {
@@ -150,7 +159,15 @@ function MainLayout() {
     <div className="stardark-shell">
       <aside className={`stardark-sidebar ${isMenuOpen ? "open" : "collapsed"}`}>
         <div className="sidebar-top">
-          <div className="brand">{t("common.appName")}</div>
+          <div className="sidebar-brand-card">
+            <span className="sidebar-brand-mark">
+              <AppIcon name="dashboard" />
+            </span>
+            <div className="sidebar-brand-copy">
+              <span className="sidebar-brand-role">{userRole}</span>
+              <div className="brand">{t("common.appName")}</div>
+            </div>
+          </div>
           <button
             className="sidebar-close"
             type="button"
@@ -172,11 +189,21 @@ function MainLayout() {
                 <span className="menu-link-icon" aria-hidden="true">
                   {renderMenuIcon(item.icon)}
                 </span>
-                <span>{t(item.labelKey)}</span>
+                <span className="menu-link-text">{t(item.labelKey)}</span>
               </span>
+              <span className="menu-link-indicator" aria-hidden="true" />
             </NavLink>
           ))}
         </nav>
+        <div className="sidebar-footer">
+          <div className="sidebar-user-card">
+            {renderUserAvatar("sidebar-user-avatar")}
+            <div className="sidebar-user-copy">
+              <strong>{username}</strong>
+              <span>{userRole}</span>
+            </div>
+          </div>
+        </div>
       </aside>
       {isMenuOpen && (
         <button
@@ -189,39 +216,48 @@ function MainLayout() {
 
       <section className="stardark-main">
         <header className="stardark-navbar">
-          <button
-            className="menu-toggle"
-            type="button"
-            onClick={() => setIsMenuOpen((prev) => !prev)}
-            aria-label={isMenuOpen ? t("common.closeMenu") : t("common.openMenu")}
-            title={isMenuOpen ? t("common.closeMenu") : t("common.openMenu")}
-          >
-            <AppIcon name={isMenuOpen ? "close" : "menu"} className="menu-icon" />
-          </button>
-          <h1>{pageTitle}</h1>
-          <div className="nav-actions">
-            <LanguageSwitcher />
+          <div className="navbar-leading">
             <button
-              className="theme-toggle"
+              className="menu-toggle"
               type="button"
-              onClick={toggleTheme}
-              aria-label={theme === "dark" ? t("common.light") : t("common.dark")}
-              title={theme === "dark" ? t("common.light") : t("common.dark")}
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              aria-label={isMenuOpen ? t("common.closeMenu") : t("common.openMenu")}
+              title={isMenuOpen ? t("common.closeMenu") : t("common.openMenu")}
             >
-              <AppIcon name={theme === "dark" ? "sun" : "moon"} />
-              {theme === "dark" ? t("common.light") : t("common.dark")}
+              <AppIcon name={isMenuOpen ? "close" : "menu"} className="menu-icon" />
             </button>
-            {profileImage ? (
-              <img className="user-avatar" src={profileImage} alt="User avatar" />
-            ) : (
-              <div className="user-avatar user-avatar-fallback">
-                {(localStorage.getItem("username") || "U").slice(0, 1).toUpperCase()}
+            <div className="navbar-title-group">
+              <span className="navbar-kicker">{userRole}</span>
+              <h1>{pageTitle}</h1>
+            </div>
+          </div>
+          <div className="nav-actions">
+            <div className="nav-action-group">
+              <LanguageSwitcher />
+              <button
+                className="theme-toggle"
+                type="button"
+                onClick={toggleTheme}
+                aria-label={theme === "dark" ? t("common.light") : t("common.dark")}
+                title={theme === "dark" ? t("common.light") : t("common.dark")}
+              >
+                <AppIcon name={theme === "dark" ? "sun" : "moon"} />
+                {theme === "dark" ? t("common.light") : t("common.dark")}
+              </button>
+            </div>
+            <div className="nav-action-group nav-action-group-user">
+              <div className="topbar-user-chip">
+                {renderUserAvatar()}
+                <div className="topbar-user-copy">
+                  <strong>{username}</strong>
+                  <span>{userRole}</span>
+                </div>
               </div>
-            )}
-            <button className="logout-btn btn-with-icon" type="button" onClick={handleLogout}>
-              <AppIcon name="logout" />
-              {t("common.logout")}
-            </button>
+              <button className="logout-btn btn-with-icon" type="button" onClick={handleLogout}>
+                <AppIcon name="logout" />
+                {t("common.logout")}
+              </button>
+            </div>
           </div>
         </header>
 

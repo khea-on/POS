@@ -38,6 +38,8 @@ function ProductGrid({ onAddItem }) {
   const [products, setProducts] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState({});
   const [detailProduct, setDetailProduct] = useState(null);
+  const [detailSize, setDetailSize] = useState("Medium");
+  const [detailQuantity, setDetailQuantity] = useState(1);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("active");
   const [stockFilter, setStockFilter] = useState("inStock");
@@ -121,12 +123,55 @@ function ProductGrid({ onAddItem }) {
   }, [products, search, activeFilter, stockFilter, minPrice, maxPrice, sort]);
 
   const openDetail = (product) => {
+    setDetailSize(selectedSizes[product.id] || "Medium");
+    setDetailQuantity(1);
     setDetailProduct(product);
   };
 
   const closeDetail = () => {
     setDetailProduct(null);
   };
+
+  const getSizeLabel = (size) => {
+    if (size === "Small") return t("common.sizeSmall");
+    if (size === "Large") return t("common.sizeLarge");
+    return t("common.sizeMedium");
+  };
+
+  const updateDetailQuantity = (nextValue) => {
+    const parsedValue = Number.parseInt(String(nextValue), 10);
+    setDetailQuantity(Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : 1);
+  };
+
+  const handleAddDetailItem = () => {
+    if (!detailProduct) {
+      return;
+    }
+
+    setSelectedSizes((prev) => ({
+      ...prev,
+      [detailProduct.id]: detailSize,
+    }));
+
+    onAddItem({
+      ...detailProduct,
+      imageUrl: getItemImageUrl(detailProduct),
+      selectedSize: detailSize,
+      price: getPriceBySize(detailProduct, detailSize),
+      quantity: detailQuantity,
+    });
+
+    closeDetail();
+  };
+
+  const detailPrice = detailProduct ? getPriceBySize(detailProduct, detailSize) : 0;
+  const detailTotal = detailPrice * detailQuantity;
+  const detailStockQuantity = Number(detailProduct?.stockQuantity || 0);
+  const detailStatusLabel = detailProduct?.isActive ? t("common.active") : t("common.inactive");
+  const detailUnavailable =
+    detailProduct
+      ? !detailProduct.isActive || detailStockQuantity <= 0
+      : false;
 
   const detailModal = detailProduct ? (
     <div className="product-detail-backdrop" onClick={closeDetail}>
@@ -138,7 +183,13 @@ function ProductGrid({ onAddItem }) {
         onClick={(event) => event.stopPropagation()}
       >
         <div className="product-detail-header">
-          <h4 id="product-detail-title">{t("productGrid.itemDetail")}</h4>
+          <div className="product-detail-header-copy">
+            <span className="product-detail-eyebrow">{t("productGrid.itemDetail")}</span>
+            <h4 id="product-detail-title">{detailProduct.name || "-"}</h4>
+            <p>
+              {t("productGrid.skuLabel")}: {detailProduct.sku || "-"}
+            </p>
+          </div>
           <button
             className="product-detail-close"
             type="button"
@@ -149,48 +200,127 @@ function ProductGrid({ onAddItem }) {
           </button>
         </div>
 
-        <img
-          className="product-detail-image"
-          src={getItemImageUrl(detailProduct)}
-          alt={detailProduct.name}
-        />
+        <div className="product-detail-hero">
+          <img
+            className="product-detail-image"
+            src={getItemImageUrl(detailProduct)}
+            alt={detailProduct.name}
+          />
 
-        <div className="product-detail-info">
-          <div className="product-detail-row">
-            <span>{t("productManagement.name")}</span>
-            <strong>{detailProduct.name || "-"}</strong>
-          </div>
-          <div className="product-detail-row">
-            <span>{t("productGrid.skuLabel")}</span>
-            <strong>{detailProduct.sku || "-"}</strong>
-          </div>
-          <div className="product-detail-row">
-            <span>{t("productGrid.stockLabel")}</span>
-            <strong>{Number(detailProduct.stockQuantity || 0)}</strong>
-          </div>
-          <div className="product-detail-row">
-            <span>{t("productGrid.statusLabel")}</span>
-            <strong>{detailProduct.isActive ? t("common.active") : t("common.inactive")}</strong>
-          </div>
-          <div className="product-detail-row">
-            <span>{t("productGrid.sizeS")}</span>
-            <strong>{formatUsdAsKhr(getPriceBySize(detailProduct, "Small"), language)}</strong>
-          </div>
-          <div className="product-detail-row">
-            <span>{t("productGrid.sizeM")}</span>
-            <strong>{formatUsdAsKhr(getPriceBySize(detailProduct, "Medium"), language)}</strong>
-          </div>
-          <div className="product-detail-row">
-            <span>{t("productGrid.sizeL")}</span>
-            <strong>{formatUsdAsKhr(getPriceBySize(detailProduct, "Large"), language)}</strong>
+          <div className="product-detail-side">
+            <div className="product-detail-badges">
+              <span className={`product-detail-badge ${detailProduct.isActive ? "is-active" : "is-inactive"}`}>
+                {detailStatusLabel}
+              </span>
+              <span className={`product-detail-badge ${detailStockQuantity > 0 ? "is-stock" : "is-empty"}`}>
+                {t("productGrid.stockLabel")}: {detailStockQuantity}
+              </span>
+            </div>
+
+            <div className="product-detail-price-grid">
+              {SIZE_OPTIONS.map((size) => (
+                <div
+                  key={`price-${detailProduct.id}-${size}`}
+                  className={`product-detail-price-card ${detailSize === size ? "active" : ""}`}
+                >
+                  <span>{t(SIZE_SHORT_LABELS[size])}</span>
+                  <strong>{formatUsdAsKhr(getPriceBySize(detailProduct, size), language)}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="product-detail-facts">
+              <div className="product-detail-fact-card">
+                <span>{t("productGrid.stockLabel")}</span>
+                <strong>{detailStockQuantity}</strong>
+              </div>
+              <div className="product-detail-fact-card">
+                <span>{t("productGrid.statusLabel")}</span>
+                <strong>{detailStatusLabel}</strong>
+              </div>
+            </div>
+
+            <div className="product-detail-form">
+              <strong className="product-detail-form-title">{t("productGrid.addToCart")}</strong>
+
+              <div className="product-detail-control-group">
+                <span className="product-detail-control-label">{t("productGrid.selectedSize")}</span>
+                <div className="size-selector product-detail-size-selector">
+                  {SIZE_OPTIONS.map((size) => (
+                    <button
+                      key={`detail-${detailProduct.id}-${size}`}
+                      className={`size-btn ${detailSize === size ? "active" : ""}`}
+                      type="button"
+                      onClick={() => setDetailSize(size)}
+                    >
+                      {t(SIZE_SHORT_LABELS[size])}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="product-detail-qty-row">
+                <span className="product-detail-control-label">{t("productGrid.quantityLabel")}</span>
+                <div className="product-detail-qty-control">
+                  <button
+                    className="product-detail-qty-btn"
+                    type="button"
+                    onClick={() => updateDetailQuantity(detailQuantity - 1)}
+                    aria-label={t("productGrid.decreaseQuantity")}
+                  >
+                    -
+                  </button>
+                  <input
+                    className="product-detail-qty-input"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={detailQuantity}
+                    onChange={(event) => updateDetailQuantity(event.target.value)}
+                  />
+                  <button
+                    className="product-detail-qty-btn"
+                    type="button"
+                    onClick={() => updateDetailQuantity(detailQuantity + 1)}
+                    aria-label={t("productGrid.increaseQuantity")}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <div className="product-detail-price-summary">
+                <div className="product-detail-price-line">
+                  <span>{t("productGrid.selectedSize")}</span>
+                  <strong>{getSizeLabel(detailSize)}</strong>
+                </div>
+                <div className="product-detail-price-line">
+                  <span>{t("productGrid.quantityLabel")}</span>
+                  <strong>{detailQuantity} x {formatUsdAsKhr(detailPrice, language)}</strong>
+                </div>
+                <div className="product-detail-price-line product-detail-price-line-total">
+                  <span>{t("productGrid.totalLabel")}</span>
+                  <strong>{formatUsdAsKhr(detailTotal, language)}</strong>
+                </div>
+              </div>
+
+              <div className="product-detail-actions">
+                <button className="product-detail-trigger" type="button" onClick={closeDetail}>
+                  {t("common.close")}
+                </button>
+                <button
+                  className="primary-btn btn-with-icon"
+                  type="button"
+                  onClick={handleAddDetailItem}
+                  disabled={detailUnavailable}
+                >
+                  <AppIcon name="plus" />
+                  {t("productGrid.addToCart")}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* <div className="product-detail-actions">
-          <button className="product-detail-trigger" type="button" onClick={closeDetail}>
-            {t("common.close")}
-          </button>
-        </div> */}
       </div>
     </div>
   ) : null;
@@ -322,4 +452,3 @@ function ProductGrid({ onAddItem }) {
 }
 
 export default ProductGrid;
-
