@@ -15,7 +15,7 @@ const menuItems = [
 ];
 
 function MainLayout() {
-  const { t } = useI18n();
+  const { language, setLanguage, t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(true);
@@ -62,6 +62,10 @@ function MainLayout() {
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(language === "km" ? "en" : "km");
   };
 
   const renderUserAvatar = (className = "") =>
@@ -231,8 +235,38 @@ function MainLayout() {
               <h1>{pageTitle}</h1>
             </div>
           </div>
+          <div className="navbar-quick-actions">
+            <button
+              className="navbar-icon-btn navbar-language-btn"
+              type="button"
+              onClick={toggleLanguage}
+              aria-label={`${t("common.language")}: ${language === "km" ? t("common.english") : t("common.khmer")}`}
+              title={`${t("common.language")}: ${language === "km" ? t("common.english") : t("common.khmer")}`}
+            >
+              <AppIcon name="globe" />
+              <span className="navbar-language-badge">{language === "km" ? "ខ" : "EN"}</span>
+            </button>
+            <button
+              className="navbar-icon-btn"
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? t("common.light") : t("common.dark")}
+              title={theme === "dark" ? t("common.light") : t("common.dark")}
+            >
+              <AppIcon name={theme === "dark" ? "sun" : "moon"} />
+            </button>
+            <button
+              className="navbar-icon-btn navbar-icon-btn-danger"
+              type="button"
+              onClick={handleLogout}
+              aria-label={t("common.logout")}
+              title={t("common.logout")}
+            >
+              <AppIcon name="logout" />
+            </button>
+          </div>
           <div className="nav-actions">
-            <div className="nav-action-group">
+            <div className="nav-action-group nav-action-group-preferences">
               <LanguageSwitcher />
               <button
                 className="theme-toggle"
