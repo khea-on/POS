@@ -96,8 +96,8 @@ function Dashboard() {
       0
     );
 
-    const activeProducts = products.filter((p) => p.isActive).length;
-    const lowStockProducts = products.filter((p) => Number(p.stockQuantity || 0) <= 10).length;
+    const activeProducts = products.filter((product) => product.isActive).length;
+    const lowStockProducts = products.filter((product) => Number(product.stockQuantity || 0) <= 10).length;
 
     return {
       salesToday: totalSalesToday,
@@ -207,19 +207,19 @@ function Dashboard() {
         key: "paid",
         label: t("pos.statusPaid"),
         count: counts.paid,
-        color: "#10b981",
+        color: "var(--dashboard-status-paid)",
       },
       {
         key: "pending",
         label: t("pos.statusPending"),
         count: counts.pending,
-        color: "#f59e0b",
+        color: "var(--dashboard-status-pending)",
       },
       {
         key: "cancelled",
         label: t("pos.statusCancelled"),
         count: counts.cancelled,
-        color: "#ef4444",
+        color: "var(--dashboard-status-cancelled)",
       },
     ];
 
@@ -235,7 +235,7 @@ function Dashboard() {
 
     const donutBackground = gradientStops.length > 0
       ? `conic-gradient(${gradientStops.join(", ")})`
-      : "conic-gradient(#64748b 0% 100%)";
+      : "conic-gradient(#7f8894 0% 100%)";
 
     return {
       total,
@@ -297,8 +297,8 @@ function Dashboard() {
             >
               <defs>
                 <linearGradient id="dashboardLineAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(209, 154, 94, 0.5)" />
-                  <stop offset="100%" stopColor="rgba(209, 154, 94, 0.04)" />
+                  <stop offset="0%" stopColor="var(--dashboard-line-fill-start)" />
+                  <stop offset="100%" stopColor="var(--dashboard-line-fill-end)" />
                 </linearGradient>
               </defs>
 

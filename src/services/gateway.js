@@ -25,6 +25,15 @@ export const routes = {
   auditLogs: {
     root: "/audit-logs",
   },
+  crm: {
+    summary: "/crm/summary",
+    customers: "/crm/customers",
+    customerById: (customerId) => `/crm/customers/${customerId}`,
+    leads: "/crm/leads",
+    leadById: (leadId) => `/crm/leads/${leadId}`,
+    activities: "/crm/activities",
+    activityById: (activityId) => `/crm/activities/${activityId}`,
+  },
   integrations: {
     telegramTest: "/integrations/telegram/test",
   },
@@ -72,6 +81,32 @@ const gateway = {
   },
   auditLogs: {
     getAll: (params) => unwrap(api.get(routes.auditLogs.root, { params })),
+  },
+  crm: {
+    getSummary: () => unwrap(api.get(routes.crm.summary)),
+    customers: {
+      getAll: (params) => unwrap(api.get(routes.crm.customers, { params })),
+      getById: (customerId) => unwrap(api.get(routes.crm.customerById(customerId))),
+      create: (payload) => unwrap(api.post(routes.crm.customers, payload)),
+      update: (customerId, payload) =>
+        unwrap(api.put(routes.crm.customerById(customerId), payload)),
+      remove: (customerId) => unwrap(api.delete(routes.crm.customerById(customerId))),
+    },
+    leads: {
+      getAll: (params) => unwrap(api.get(routes.crm.leads, { params })),
+      getById: (leadId) => unwrap(api.get(routes.crm.leadById(leadId))),
+      create: (payload) => unwrap(api.post(routes.crm.leads, payload)),
+      update: (leadId, payload) => unwrap(api.put(routes.crm.leadById(leadId), payload)),
+      remove: (leadId) => unwrap(api.delete(routes.crm.leadById(leadId))),
+    },
+    activities: {
+      getAll: (params) => unwrap(api.get(routes.crm.activities, { params })),
+      getById: (activityId) => unwrap(api.get(routes.crm.activityById(activityId))),
+      create: (payload) => unwrap(api.post(routes.crm.activities, payload)),
+      update: (activityId, payload) =>
+        unwrap(api.put(routes.crm.activityById(activityId), payload)),
+      remove: (activityId) => unwrap(api.delete(routes.crm.activityById(activityId))),
+    },
   },
   integrations: {
     sendTelegramTest: (payload) =>

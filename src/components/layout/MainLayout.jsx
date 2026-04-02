@@ -3,33 +3,80 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import LanguageSwitcher from "../common/LanguageSwitcher";
 import AppIcon from "../common/AppIcon";
 import useI18n from "../../i18n/useI18n";
+import {
+  CRM_APP,
+  POS_APP,
+  clearAuthSession,
+  getAppHomePath,
+  getAuthSession,
+  hasModuleAccess,
+  setActiveApp,
+} from "../../services/authSession";
 
-const menuItems = [
-  { labelKey: "nav.item", to: "/pos", icon: "item", roles: ["Admin", "Cashier"] },
-  { labelKey: "nav.dashboard", to: "/dashboard", icon: "dashboard", roles: ["Admin", "Cashier"] },
-  { labelKey: "nav.inventoryManagement", to: "/inventory-management", icon: "inventory", roles: ["Admin"] },
-  { labelKey: "nav.reports", to: "/reports", icon: "reports", roles: ["Admin"] },
-  { labelKey: "nav.auditLogs", to: "/audit-logs", icon: "audit", roles: ["Admin"] },
-  { labelKey: "nav.help", to: "/help", icon: "help", roles: ["Admin", "Cashier"] },
-  { labelKey: "nav.settings", to: "/settings", icon: "settings", roles: ["Admin", "Cashier"] },
+const posMenuItems = [
+  { labelKey: "nav.dashboard", to: "/dashboard", icon: "dashboard", roles: ["Admin", "Cashier"], module: "dashboard" },
+  { labelKey: "nav.item", to: "/pos", icon: "item", roles: ["Admin", "Cashier"], module: "pos" },
+  { labelKey: "nav.productManagement", to: "/product-management", icon: "product", roles: ["Admin"], module: "product-management" },
+  { labelKey: "nav.inventoryManagement", to: "/inventory-management", icon: "inventory", roles: ["Admin"], module: "inventory-management" },
+  { labelKey: "nav.reports", to: "/reports", icon: "reports", roles: ["Admin"], module: "reports" },
+  { labelKey: "nav.auditLogs", to: "/audit-logs", icon: "audit", roles: ["Admin"], module: "audit-logs" },
+  { labelKey: "nav.help", to: "/help", icon: "help", roles: ["Admin", "Cashier"], module: "help" },
+  { labelKey: "nav.settings", to: "/settings", icon: "settings", roles: ["Admin", "Cashier"], module: "settings" },
+  { labelKey: "nav.accessControl", to: "/access-control", icon: "user", roles: ["Admin"], module: "access-control" },
 ];
 
-function MainLayout() {
+const crmMenuItems = [
+  { labelKey: "nav.crmWorkspace", to: "/crm", icon: "crm", module: "crm" },
+  { labelKey: "nav.crmCustomers", to: "/crm/customers", icon: "user", module: "crm-customers" },
+  { labelKey: "nav.crmLeads", to: "/crm/leads", icon: "reports", module: "crm-leads" },
+  { labelKey: "nav.crmActivities", to: "/crm/activities", icon: "help", module: "crm-activities" },
+];
+
+const getLocalizedRole = (role, t) => {
+  const normalizedRole = String(role || "").toLowerCase();
+  if (normalizedRole === "admin") {
+    return t("settings.roleAdmin");
+  }
+  if (normalizedRole === "cashier") {
+    return t("settings.roleCashier");
+  }
+  if (normalizedRole === "crmadmin") {
+    return t("crm.roles.crmAdmin");
+  }
+  if (normalizedRole === "crmuser") {
+    return t("crm.roles.crmUser");
+  }
+  return role;
+};
+
+function MainLayout({ app = POS_APP }) {
   const { language, setLanguage, t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(true);
-  const [profileImage, setProfileImage] = useState(localStorage.getItem("imageUrl") || "");
+  const session = getAuthSession();
+  const currentApp = app === CRM_APP ? CRM_APP : POS_APP;
+  const isCrmApp = currentApp === CRM_APP;
+  const [profileImage, setProfileImage] = useState(session.imageUrl || "");
   const [theme, setTheme] = useState(
-    localStorage.getItem("theme") === "dark" ? "dark" : "light"
+    localStorage.getItem("theme") === "light" ? "light" : "dark"
   );
-  const userRole = localStorage.getItem("role") || "Cashier";
-  const username = localStorage.getItem("username") || "User";
+  const availableApps = session.allowedApps;
+  const userRole = currentApp === CRM_APP
+    ? (session.crmRole || "CrmUser")
+    : (session.posRole || session.role || "Cashier");
+  const username = session.username || t("common.user");
   const userInitial = username.slice(0, 1).toUpperCase();
+  const menuItems = currentApp === CRM_APP ? crmMenuItems : posMenuItems;
+  const appLabel = isCrmApp ? t("nav.crm") : t("nav.pos");
+  const localizedUserRole = getLocalizedRole(userRole, t);
 
   const visibleMenuItems = useMemo(
-    () => menuItems.filter((item) => item.roles.includes(userRole)),
-    [userRole]
+    () => menuItems.filter((item) =>
+      (!item.roles || item.roles.includes(userRole))
+      && hasModuleAccess(currentApp, item.module, session)
+    ),
+    [currentApp, menuItems, session, userRole]
   );
 
   useEffect(() => {
@@ -47,17 +94,27 @@ function MainLayout() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    setActiveApp(currentApp);
+  }, [currentApp]);
+
   const pageTitle = useMemo(() => {
     const current = visibleMenuItems.find((item) => item.to === location.pathname);
-    return current ? t(current.labelKey) : t("nav.pos");
-  }, [location.pathname, t, visibleMenuItems]);
+    if (current) {
+      return current.labelKey ? t(current.labelKey) : current.label;
+    }
+
+    return isCrmApp ? t("nav.crmWorkspace") : t("nav.pos");
+  }, [isCrmApp, location.pathname, t, visibleMenuItems]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    localStorage.removeItem("role");
-    localStorage.removeItem("imageUrl");
+    clearAuthSession();
     navigate("/");
+  };
+
+  const handleSwitchApp = (targetApp) => {
+    setActiveApp(targetApp);
+    navigate(getAppHomePath(targetApp, getAuthSession()));
   };
 
   const toggleTheme = () => {
@@ -151,6 +208,14 @@ function MainLayout() {
       );
     }
 
+    if (iconName === "crm") {
+      return <AppIcon name="crm" />;
+    }
+
+    if (iconName === "user") {
+      return <AppIcon name="user" />;
+    }
+
     return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
         <circle cx="12" cy="12" r="3.2" />
@@ -160,16 +225,16 @@ function MainLayout() {
   };
 
   return (
-    <div className="stardark-shell">
+    <div className={`stardark-shell ${isCrmApp ? "crm-shell" : ""}`.trim()}>
       <aside className={`stardark-sidebar ${isMenuOpen ? "open" : "collapsed"}`}>
         <div className="sidebar-top">
           <div className="sidebar-brand-card">
             <span className="sidebar-brand-mark">
-              <AppIcon name="dashboard" />
+              <AppIcon name={isCrmApp ? "crm" : "dashboard"} />
             </span>
             <div className="sidebar-brand-copy">
-              <span className="sidebar-brand-role">{userRole}</span>
-              <div className="brand">{t("common.appName")}</div>
+              <span className="sidebar-brand-role">{appLabel}</span>
+              <div className="brand">{isCrmApp ? t("nav.crm") : t("common.appName")}</div>
             </div>
           </div>
           <button
@@ -193,18 +258,18 @@ function MainLayout() {
                 <span className="menu-link-icon" aria-hidden="true">
                   {renderMenuIcon(item.icon)}
                 </span>
-                <span className="menu-link-text">{t(item.labelKey)}</span>
+                <span className="menu-link-text">{item.labelKey ? t(item.labelKey) : item.label}</span>
               </span>
               <span className="menu-link-indicator" aria-hidden="true" />
             </NavLink>
           ))}
         </nav>
         <div className="sidebar-footer">
-          <div className="sidebar-user-card">
+            <div className="sidebar-user-card">
             {renderUserAvatar("sidebar-user-avatar")}
             <div className="sidebar-user-copy">
               <strong>{username}</strong>
-              <span>{userRole}</span>
+              <span>{localizedUserRole}</span>
             </div>
           </div>
         </div>
@@ -219,7 +284,7 @@ function MainLayout() {
       )}
 
       <section className="stardark-main">
-        <header className="stardark-navbar">
+        <header className={`stardark-navbar ${isCrmApp ? "crm-navbar" : ""}`.trim()}>
           <div className="navbar-leading">
             <button
               className="menu-toggle"
@@ -231,11 +296,25 @@ function MainLayout() {
               <AppIcon name={isMenuOpen ? "close" : "menu"} className="menu-icon" />
             </button>
             <div className="navbar-title-group">
-              <span className="navbar-kicker">{userRole}</span>
+              <span className="navbar-kicker">{appLabel}</span>
               <h1>{pageTitle}</h1>
             </div>
           </div>
           <div className="navbar-quick-actions">
+            {availableApps.length > 1 ? (
+              <div className="navbar-app-switcher">
+                {availableApps.map((availableApp) => (
+                  <button
+                    key={availableApp}
+                    className={`navbar-app-switch-btn ${availableApp === currentApp ? "active" : ""}`.trim()}
+                    type="button"
+                    onClick={() => handleSwitchApp(availableApp)}
+                  >
+                    {availableApp}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <button
               className="navbar-icon-btn navbar-language-btn"
               type="button"
@@ -284,7 +363,7 @@ function MainLayout() {
                 {renderUserAvatar()}
                 <div className="topbar-user-copy">
                   <strong>{username}</strong>
-                  <span>{userRole}</span>
+                  <span>{appLabel} | {localizedUserRole}</span>
                 </div>
               </div>
               <button className="logout-btn btn-with-icon" type="button" onClick={handleLogout}>

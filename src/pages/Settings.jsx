@@ -2,14 +2,35 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
+import { POS_APP, getAuthSession, hasModuleAccess } from "../services/authSession";
 
 const DEFAULT_USER_FORM = {
   username: "",
   role: "Cashier",
+  posRole: "Cashier",
+  crmRole: "CrmUser",
+  isPosEnabled: true,
+  isCrmEnabled: false,
+  defaultApp: "POS",
 };
 
 const normalizeRole = (role) => {
   return String(role || "").toLowerCase() === "admin" ? "Admin" : "Cashier";
+};
+
+const normalizeCrmRole = (role) => {
+  return String(role || "").toLowerCase() === "crmadmin" ? "CrmAdmin" : "CrmUser";
+};
+
+const describeEnabledApps = (user) => {
+  const apps = [];
+  if (user?.isPosEnabled) {
+    apps.push("POS");
+  }
+  if (user?.isCrmEnabled) {
+    apps.push("CRM");
+  }
+  return apps.length > 0 ? apps.join(", ") : "No app access";
 };
 
 const formatCreatedDate = (value) => {
@@ -61,9 +82,11 @@ function Settings() {
   const [telegramStatusMessage, setTelegramStatusMessage] = useState("");
   const [telegramStatusError, setTelegramStatusError] = useState("");
 
-  const currentUsername = localStorage.getItem("username") || "";
-  const currentRole = profile?.role || localStorage.getItem("role") || "";
+  const session = getAuthSession();
+  const currentUsername = session.username || "";
+  const currentRole = profile?.posRole || profile?.role || session.posRole || session.role || "";
   const isAdmin = currentRole.toLowerCase() === "admin";
+  const canManageUsers = isAdmin && hasModuleAccess(POS_APP, "access-control", session);
 
   const loadSettingsData = useCallback(async () => {
     setDataLoading(true);
@@ -92,7 +115,7 @@ function Settings() {
   }, [t]);
 
   const loadUsers = useCallback(async () => {
-    if (!isAdmin) {
+    if (!canManageUsers) {
       setUsers([]);
       setUsersError("");
       setUsersLoading(false);
@@ -115,7 +138,7 @@ function Settings() {
     } finally {
       setUsersLoading(false);
     }
-  }, [isAdmin, t]);
+  }, [canManageUsers, t]);
 
   useEffect(() => {
     loadSettingsData();
@@ -159,7 +182,7 @@ function Settings() {
     return [...users]
       .filter((user) => {
         const username = String(user.username || "").toLowerCase();
-        const role = normalizeRole(user.role).toLowerCase();
+        const role = normalizeRole(user.posRole || user.role).toLowerCase();
 
         if (searchTerm && !username.includes(searchTerm)) {
           return false;
@@ -207,7 +230,12 @@ function Settings() {
     setEditingUserId(user.id);
     setUserForm({
       username: user.username || "",
-      role: normalizeRole(user.role),
+      role: normalizeRole(user.posRole || user.role),
+      posRole: normalizeRole(user.posRole || user.role),
+      crmRole: normalizeCrmRole(user.crmRole),
+      isPosEnabled: user.isPosEnabled !== false,
+      isCrmEnabled: Boolean(user.isCrmEnabled),
+      defaultApp: user.defaultApp || (user.isCrmEnabled && !user.isPosEnabled ? "CRM" : "POS"),
     });
     setShowEditUserModal(true);
   };
@@ -222,10 +250,21 @@ function Settings() {
     setUsersMessage("");
     setUsersError("");
 
+    if (!userForm.isPosEnabled && !userForm.isCrmEnabled) {
+      setUsersError("Enable POS access, CRM access, or both.");
+      setSavingUser(false);
+      return;
+    }
+
     try {
       const updated = await gateway.auth.updateUser(editingUserId, {
         username: userForm.username.trim(),
-        role: userForm.role,
+        role: userForm.posRole,
+        posRole: userForm.posRole,
+        crmRole: userForm.isCrmEnabled ? userForm.crmRole : null,
+        isPosEnabled: userForm.isPosEnabled,
+        isCrmEnabled: userForm.isCrmEnabled,
+        defaultApp: userForm.defaultApp,
       });
 
       setUsersMessage(
@@ -377,13 +416,94 @@ function Settings() {
                 <span className="inventory-modal-label">{t("settings.role")}</span>
                 <select
                   className="inventory-modal-input"
-                  value={userForm.role}
+                  value={userForm.posRole}
                   onChange={(event) =>
-                    setUserForm((prev) => ({ ...prev, role: event.target.value }))
+                    setUserForm((prev) => ({
+                      ...prev,
+                      role: event.target.value,
+                      posRole: event.target.value,
+                    }))
                   }
+                  disabled={!userForm.isPosEnabled}
                 >
                   <option value="Cashier">{t("settings.roleCashier")}</option>
                   <option value="Admin">{t("settings.roleAdmin")}</option>
+                </select>
+              </label>
+
+              <label className="inventory-modal-field">
+                <span className="inventory-modal-label">Enable Applications</span>
+                <div className="settings-access-toggle-group">
+                  <label className="settings-access-toggle">
+                    <input
+                      type="checkbox"
+                      checked={userForm.isPosEnabled}
+                      onChange={(event) =>
+                        setUserForm((prev) => {
+                          const isPosEnabled = event.target.checked;
+                          const defaultApp = !isPosEnabled && prev.defaultApp === "POS"
+                            ? (prev.isCrmEnabled ? "CRM" : "POS")
+                            : prev.defaultApp;
+                          return {
+                            ...prev,
+                            isPosEnabled,
+                            defaultApp,
+                          };
+                        })
+                      }
+                    />
+                    <span>POS</span>
+                  </label>
+
+                  <label className="settings-access-toggle">
+                    <input
+                      type="checkbox"
+                      checked={userForm.isCrmEnabled}
+                      onChange={(event) =>
+                        setUserForm((prev) => {
+                          const isCrmEnabled = event.target.checked;
+                          const defaultApp = !isCrmEnabled && prev.defaultApp === "CRM"
+                            ? (prev.isPosEnabled ? "POS" : "CRM")
+                            : prev.defaultApp;
+                          return {
+                            ...prev,
+                            isCrmEnabled,
+                            defaultApp,
+                          };
+                        })
+                      }
+                    />
+                    <span>CRM</span>
+                  </label>
+                </div>
+              </label>
+
+              <label className="inventory-modal-field">
+                <span className="inventory-modal-label">CRM Role</span>
+                <select
+                  className="inventory-modal-input"
+                  value={userForm.crmRole}
+                  onChange={(event) =>
+                    setUserForm((prev) => ({ ...prev, crmRole: event.target.value }))
+                  }
+                  disabled={!userForm.isCrmEnabled}
+                >
+                  <option value="CrmUser">CrmUser</option>
+                  <option value="CrmAdmin">CrmAdmin</option>
+                </select>
+              </label>
+
+              <label className="inventory-modal-field">
+                <span className="inventory-modal-label">Default App</span>
+                <select
+                  className="inventory-modal-input"
+                  value={userForm.defaultApp}
+                  onChange={(event) =>
+                    setUserForm((prev) => ({ ...prev, defaultApp: event.target.value }))
+                  }
+                >
+                  {userForm.isPosEnabled ? <option value="POS">POS</option> : null}
+                  {userForm.isCrmEnabled ? <option value="CRM">CRM</option> : null}
                 </select>
               </label>
 
@@ -478,14 +598,14 @@ function Settings() {
                 placeholder={t("settings.searchUsers")}
                 value={userSearch}
                 onChange={(event) => setUserSearch(event.target.value)}
-                disabled={!isAdmin}
+                disabled={!canManageUsers}
               />
             </label>
 
             <select
               value={userRoleFilter}
               onChange={(event) => setUserRoleFilter(event.target.value)}
-              disabled={!isAdmin}
+              disabled={!canManageUsers}
             >
               <option value="all">{t("settings.allRoles")}</option>
               <option value="admin">{t("settings.roleAdmin")}</option>
@@ -496,7 +616,7 @@ function Settings() {
               className="inventory-add-btn"
               type="button"
               onClick={loadUsers}
-              disabled={!isAdmin || usersLoading}
+              disabled={!canManageUsers || usersLoading}
             >
               <AppIcon name="save" />
               {t("settings.refreshUsers")}
@@ -510,6 +630,12 @@ function Settings() {
         {!isAdmin ? (
           <div className="page-card settings-user-restricted">
             <p className="muted-text">{t("settings.userManagementAdminOnly")}</p>
+          </div>
+        ) : !canManageUsers ? (
+          <div className="page-card settings-user-restricted">
+            <p className="muted-text">
+              Access Control module is disabled for your account. Enable the `access-control` POS module to manage users.
+            </p>
           </div>
         ) : (
           <div className="inventory-modern-table">
@@ -527,7 +653,7 @@ function Settings() {
             ) : (
               <div className="inventory-table-body">
                 {filteredUsers.map((user) => {
-                  const normalizedRole = normalizeRole(user.role);
+                  const normalizedRole = normalizeRole(user.posRole || user.role);
                   const roleClassName = normalizedRole.toLowerCase();
                   const isCurrentUser =
                     String(user.username || "").toLowerCase() === currentUsername.toLowerCase();
@@ -551,6 +677,7 @@ function Settings() {
                               date: formatCreatedDate(user.createdAt),
                             })}
                           </div>
+                          <div className="inventory-product-sku">Apps: {describeEnabledApps(user)}</div>
                         </div>
                       </div>
                       <div>
@@ -559,6 +686,9 @@ function Settings() {
                             ? t("settings.roleAdmin")
                             : t("settings.roleCashier")}
                         </span>
+                        <div className="inventory-product-sku">
+                          CRM: {user.isCrmEnabled ? normalizeCrmRole(user.crmRole) : "-"}
+                        </div>
                       </div>
                       <div className="inventory-row-text">{formatCreatedDate(user.createdAt)}</div>
                       <div className="inventory-actions">

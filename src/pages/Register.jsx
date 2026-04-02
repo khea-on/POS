@@ -4,6 +4,7 @@ import gateway from "../services/gateway";
 import AppIcon from "../components/common/AppIcon";
 import LanguageSwitcher from "../components/common/LanguageSwitcher";
 import useI18n from "../i18n/useI18n";
+import { getPreferredHomePath, getAuthSession, persistAuthSession } from "../services/authSession";
 
 function Register() {
   const { t } = useI18n();
@@ -16,8 +17,8 @@ function Register() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (localStorage.getItem("token")) {
-      navigate("/dashboard");
+    if (getAuthSession().token) {
+      navigate(getPreferredHomePath(), { replace: true });
     }
   }, [navigate]);
 
@@ -46,11 +47,11 @@ function Register() {
         password,
       });
 
-      localStorage.setItem("token", loginData.token);
-      localStorage.setItem("username", loginData.username || cleanUsername);
-      localStorage.setItem("role", loginData.role || "Cashier");
-      localStorage.setItem("imageUrl", loginData.imageUrl || "");
-      navigate("/dashboard");
+      const session = persistAuthSession({
+        ...loginData,
+        username: loginData.username || cleanUsername,
+      });
+      navigate(getPreferredHomePath(session));
     } catch (err) {
       setError(err.response?.data || t("register.registerFailed"));
     } finally {

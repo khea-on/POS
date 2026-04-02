@@ -226,6 +226,16 @@ function AppIcon({ name, className = "", title }) {
       );
     }
 
+    if (name === "crm") {
+      return (
+        <svg {...commonProps}>
+          <path d="M7 18v-1.2A3.8 3.8 0 0 1 10.8 13h2.4A3.8 3.8 0 0 1 17 16.8V18" />
+          <circle cx="12" cy="8" r="3" />
+          <path d="M4 19h16" />
+        </svg>
+      );
+    }
+
     if (name === "items-screen") {
       return (
         <svg {...commonProps}>
