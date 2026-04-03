@@ -46,6 +46,7 @@ import CrmAttendance from "./pages/CrmAttendance";
 import CrmActivities from "./pages/CrmActivities";
 import CrmCustomers from "./pages/CrmCustomers";
 import CrmLeads from "./pages/CrmLeads";
+import CrmOcr from "./pages/CrmOcr";
 import Dashboard from "./pages/Dashboard";
 import CrmWorkspace from "./pages/CrmWorkspace";
 import Login from "./pages/Login";
@@ -194,6 +195,14 @@ function App() {
             element={(
               <ModuleAccessRoute app={CRM_APP} module="crm-attendance">
                 <CrmAttendance />
+              </ModuleAccessRoute>
+            )}
+          />
+          <Route
+            path="/crm/ocr"
+            element={(
+              <ModuleAccessRoute app={CRM_APP} module="crm-ocr">
+                <CrmOcr />
               </ModuleAccessRoute>
             )}
           />

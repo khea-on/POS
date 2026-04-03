@@ -3,7 +3,52 @@ import api from "./api";
 const routes = {
   docx: "/pdf-conversions/docx",
   png: "/pdf-conversions/png",
+  pngArchive: "/pdf-conversions/png/archive",
   xlsx: "/pdf-conversions/xlsx",
+};
+
+const extractErrorMessage = (payload) => {
+  if (typeof payload === "string") {
+    const trimmed = payload.trim();
+    if (!trimmed) {
+      return "";
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed?.message === "string" && parsed.message.trim()) {
+        return parsed.message.trim();
+      }
+    } catch {
+      return trimmed;
+    }
+
+    return trimmed;
+  }
+
+  if (typeof payload?.message === "string" && payload.message.trim()) {
+    return payload.message.trim();
+  }
+
+  return "";
+};
+
+const getRequestErrorMessage = async (error) => {
+  const responseData = error?.response?.data;
+
+  if (responseData instanceof Blob) {
+    const blobMessage = extractErrorMessage(await responseData.text());
+    if (blobMessage) {
+      return blobMessage;
+    }
+  }
+
+  const responseMessage = extractErrorMessage(responseData);
+  if (responseMessage) {
+    return responseMessage;
+  }
+
+  return error instanceof Error ? error.message : "Unable to convert the PDF.";
 };
 
 const getFileNameFromDisposition = (contentDisposition) => {
@@ -43,15 +88,19 @@ const createFormData = (file, options = {}) => {
 };
 
 const requestConversion = async (url, file, options = {}) => {
-  const response = await api.post(url, createFormData(file, options), {
-    responseType: "blob",
-  });
+  try {
+    const response = await api.post(url, createFormData(file, options), {
+      responseType: "blob",
+    });
 
-  return {
-    blob: response.data,
-    contentType: response.headers["content-type"] || response.data.type || "",
-    fileName: getFileNameFromDisposition(response.headers["content-disposition"]),
-  };
+    return {
+      blob: response.data,
+      contentType: response.headers["content-type"] || response.data.type || "",
+      fileName: getFileNameFromDisposition(response.headers["content-disposition"]),
+    };
+  } catch (error) {
+    throw new Error(await getRequestErrorMessage(error));
+  }
 };
 
 export const saveBlobAsFile = (blob, fileName) => {
@@ -67,8 +116,10 @@ export const saveBlobAsFile = (blob, fileName) => {
 
 const pdfConversion = {
   convertToDocx: (file) => requestConversion(routes.docx, file),
-  convertToPngArchive: (file, options = {}) =>
+  convertToPng: (file, options = {}) =>
     requestConversion(routes.png, file, options),
+  convertToPngArchive: (file, options = {}) =>
+    requestConversion(routes.pngArchive, file, options),
   convertToXlsx: (file) => requestConversion(routes.xlsx, file),
   saveBlobAsFile,
 };

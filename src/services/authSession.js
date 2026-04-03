@@ -21,7 +21,7 @@ const ALLOWED_APPS_KEY = "allowedApps";
 const POS_MODULES_KEY = "posModules";
 const CRM_MODULES_KEY = "crmModules";
 const CRM_MODULE_SCHEMA_VERSION_KEY = "crmModuleSchemaVersion";
-const CRM_MODULE_SCHEMA_VERSION = "crm-attendance-v1";
+const CRM_MODULE_SCHEMA_VERSION = "crm-ocr-v1";
 
 export const normalizeApp = (value) => {
   const normalized = String(value || "").trim().toUpperCase();
@@ -79,12 +79,11 @@ const migrateLegacyCrmModules = (crmModules) => {
     return crmModules;
   }
 
-  const shouldAddAttendance = crmModules.length > 0 && !crmModules.includes("crm-attendance");
-  const nextModules = shouldAddAttendance
-    ? normalizeModuleKeys([...crmModules, "crm-attendance"], CRM_MODULES)
+  const nextModules = crmModules.length > 0
+    ? normalizeModuleKeys([...crmModules, "crm-attendance", "crm-ocr"], CRM_MODULES)
     : crmModules;
 
-  if (shouldAddAttendance) {
+  if (crmModules.length > 0) {
     localStorage.setItem(CRM_MODULES_KEY, JSON.stringify(nextModules));
   }
   localStorage.setItem(CRM_MODULE_SCHEMA_VERSION_KEY, CRM_MODULE_SCHEMA_VERSION);

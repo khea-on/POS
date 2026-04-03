@@ -6,6 +6,7 @@ export const POS_MODULES = [
   { key: "reports", label: "Reports", route: "/reports" },
   { key: "audit-logs", label: "Audit Logs", route: "/audit-logs" },
   { key: "help", label: "Help", route: "/help" },
+  { key: "help-pdf-conversions", label: "Help: PDF Conversions" },
   { key: "settings", label: "Settings", route: "/settings" },
   { key: "access-control", label: "Access Control", route: "/access-control" },
 ];
@@ -14,6 +15,7 @@ export const CRM_MODULES = [
   { key: "crm", label: "CRM Workspace", route: "/crm" },
   { key: "crm-customers", label: "Customers", route: "/crm/customers" },
   { key: "crm-attendance", label: "Staff Attendance", route: "/crm/attendance" },
+  { key: "crm-ocr", label: "OCR", route: "/crm/ocr" },
   { key: "crm-leads", label: "Leads", route: "/crm/leads" },
   { key: "crm-activities", label: "Activities", route: "/crm/activities" },
 ];
@@ -24,7 +26,7 @@ export const getDefaultPosModules = (role) => {
     return POS_MODULES.map((item) => item.key);
   }
 
-  return ["dashboard", "pos", "help", "settings"];
+  return ["dashboard", "pos", "help", "help-pdf-conversions", "settings"];
 };
 
 export const getDefaultCrmModules = (role) => {
@@ -33,7 +35,7 @@ export const getDefaultCrmModules = (role) => {
     return CRM_MODULES.map((item) => item.key);
   }
 
-  return ["crm", "crm-customers", "crm-attendance", "crm-activities"];
+  return ["crm", "crm-customers", "crm-attendance", "crm-ocr", "crm-activities"];
 };
 
 export const normalizeModuleKeys = (requestedModules, allowedModules) => {

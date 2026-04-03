@@ -1,4 +1,6 @@
 import AppIcon from "../components/common/AppIcon";
+import { POS_APP, getAuthSession, hasModuleAccess } from "../services/authSession";
+import PdfConversionsPanel from "../components/help/PdfConversionsPanel";
 import useI18n from "../i18n/useI18n";
 
 function HelpGuide() {
@@ -9,6 +11,8 @@ function HelpGuide() {
   const currentRoleLabel = currentRole === "Admin"
     ? t("settings.roleAdmin")
     : t("settings.roleCashier");
+  const session = getAuthSession();
+  const canAccessPdfConversions = hasModuleAccess(POS_APP, "help-pdf-conversions", session);
 
   const quickStartSteps = [
     {
@@ -100,6 +104,8 @@ function HelpGuide() {
       </section>
 
       <section className="help-grid">
+        {canAccessPdfConversions ? <PdfConversionsPanel /> : null}
+
         <article className="page-card help-card help-card-wide">
           <div className="help-section-head">
             <div className="help-icon-badge" aria-hidden="true">

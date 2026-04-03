@@ -28,6 +28,13 @@ function CrmWorkspace() {
       icon: "clock",
     },
     {
+      key: "crm-ocr",
+      to: "/crm/ocr",
+      title: t("nav.crmOcr"),
+      description: t("crm.ocr.subtitle"),
+      icon: "ocr",
+    },
+    {
       key: "crm-leads",
       to: "/crm/leads",
       title: t("nav.crmLeads"),

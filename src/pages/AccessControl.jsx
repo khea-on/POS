@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import gateway from "../services/gateway";
 import AppIcon from "../components/common/AppIcon";
 import {
@@ -8,7 +9,14 @@ import {
   getDefaultPosModules,
   normalizeModuleKeys,
 } from "../access/moduleCatalog";
-import { getAuthSession } from "../services/authSession";
+import {
+  POS_APP,
+  getAuthSession,
+  getBestAvailablePath,
+  hasAppAccess,
+  hasModuleAccess,
+  persistAuthSession,
+} from "../services/authSession";
 
 const createDefaultForm = () => ({
   username: "",
@@ -41,7 +49,37 @@ const describeApps = (user) => {
 const toggleValue = (values, value) =>
   values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 
+const POS_HELP_MODULE = "help";
+const POS_HELP_PDF_MODULE = "help-pdf-conversions";
+
+const normalizePosModules = (values) => {
+  const nextValues = [...new Set(values)];
+  if (!nextValues.includes(POS_HELP_MODULE)) {
+    return nextValues.filter((item) => item !== POS_HELP_PDF_MODULE);
+  }
+
+  if (nextValues.includes(POS_HELP_PDF_MODULE)) {
+    return nextValues;
+  }
+
+  return nextValues;
+};
+
+const togglePosModuleValue = (values, value) => {
+  const toggledValues = toggleValue(values, value);
+  if (value === POS_HELP_MODULE && !toggledValues.includes(POS_HELP_MODULE)) {
+    return normalizePosModules(toggledValues);
+  }
+
+  if (value === POS_HELP_PDF_MODULE && toggledValues.includes(POS_HELP_PDF_MODULE)) {
+    return normalizePosModules([...toggledValues, POS_HELP_MODULE]);
+  }
+
+  return normalizePosModules(toggledValues);
+};
+
 function AccessControl() {
+  const navigate = useNavigate();
   const currentUsername = String(getAuthSession().username || "").toLowerCase();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +160,7 @@ function AccessControl() {
       isCrmEnabled: Boolean(user.isCrmEnabled),
       defaultApp: user.defaultApp || (user.isCrmEnabled && !user.isPosEnabled ? "CRM" : "POS"),
       posModules: Array.isArray(user.posModules) && user.posModules.length > 0
-        ? normalizeModuleKeys(user.posModules, POS_MODULES)
+        ? normalizePosModules(normalizeModuleKeys(user.posModules, POS_MODULES))
         : getDefaultPosModules(user.posRole || user.role),
       crmModules: Array.isArray(user.crmModules) && user.crmModules.length > 0
         ? normalizeModuleKeys(user.crmModules, CRM_MODULES)
@@ -135,6 +173,9 @@ function AccessControl() {
     if (!selectedUser) {
       return;
     }
+
+    const isEditingCurrentUser =
+      String(selectedUser.username || "").toLowerCase() === currentUsername;
 
     setSaving(true);
     setMessage("");
@@ -172,9 +213,24 @@ function AccessControl() {
       };
 
       const updated = await gateway.auth.updateUser(selectedUser.id, payload);
+      let nextSession = null;
+      if (isEditingCurrentUser && updated?.currentSession) {
+        nextSession = persistAuthSession(updated.currentSession);
+      }
+
       setMessage(`Updated access for ${updated?.username || form.username.trim()}.`);
       setSelectedUser(null);
       setForm(createDefaultForm());
+
+      if (nextSession) {
+        const canStayInAccessControl = hasAppAccess(POS_APP, nextSession)
+          && hasModuleAccess(POS_APP, "access-control", nextSession);
+        if (!canStayInAccessControl) {
+          navigate(getBestAvailablePath(nextSession), { replace: true });
+          return;
+        }
+      }
+
       await loadUsers();
     } catch (err) {
       const apiError = err.response?.data;
@@ -333,7 +389,7 @@ function AccessControl() {
                         onChange={() =>
                           setForm((prev) => ({
                             ...prev,
-                            posModules: toggleValue(prev.posModules, module.key),
+                            posModules: togglePosModuleValue(prev.posModules, module.key),
                           }))
                         }
                       />
@@ -472,9 +528,8 @@ function AccessControl() {
                       type="button"
                       className="inventory-action-btn inventory-edit-action-btn"
                       onClick={() => openEditor(user)}
-                      disabled={isCurrentUser}
                       aria-label="Manage access"
-                      title={isCurrentUser ? "You cannot edit your own access here." : "Manage access"}
+                      title={isCurrentUser ? "Manage your own access" : "Manage access"}
                     >
                       <AppIcon name="edit" />
                     </button>

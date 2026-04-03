@@ -37,6 +37,9 @@ export const routes = {
       staff: "/crm/staff",
       staffByCode: (staffCode) => `/crm/staff/${encodeURIComponent(staffCode)}`,
     },
+    ocr: {
+      extract: "/crm/ocr/extract",
+    },
     leads: "/crm/leads",
     leadById: (leadId) => `/crm/leads/${leadId}`,
     activities: "/crm/activities",
@@ -99,6 +102,17 @@ const gateway = {
       checkOut: (payload) => unwrap(api.post(routes.crm.attendance.checkOut, payload)),
       getStaff: (staffCode) => unwrap(api.get(routes.crm.attendance.staffByCode(staffCode))),
       getStaffList: () => unwrap(api.get(routes.crm.attendance.staff)),
+    },
+    ocr: {
+      extract: (file, promptHint = "", documentType = "generic") => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("documentType", documentType);
+        if (promptHint.trim()) {
+          formData.append("promptHint", promptHint.trim());
+        }
+        return unwrap(api.post(routes.crm.ocr.extract, formData));
+      },
     },
     customers: {
       getAll: (params) => unwrap(api.get(routes.crm.customers, { params })),

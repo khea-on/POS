@@ -29,6 +29,7 @@ const crmMenuItems = [
   { labelKey: "nav.crmWorkspace", to: "/crm", icon: "crm", module: "crm" },
   { labelKey: "nav.crmCustomers", to: "/crm/customers", icon: "user", module: "crm-customers" },
   { labelKey: "nav.crmAttendance", to: "/crm/attendance", icon: "clock", module: "crm-attendance" },
+  { labelKey: "nav.crmOcr", to: "/crm/ocr", icon: "ocr", module: "crm-ocr" },
   { labelKey: "nav.crmLeads", to: "/crm/leads", icon: "reports", module: "crm-leads" },
   { labelKey: "nav.crmActivities", to: "/crm/activities", icon: "help", module: "crm-activities" },
 ];
@@ -229,6 +230,10 @@ function MainLayout({ app = POS_APP }) {
 
     if (iconName === "clock") {
       return <AppIcon name="clock" />;
+    }
+
+    if (iconName === "ocr") {
+      return <AppIcon name="ocr" />;
     }
 
     if (iconName === "user") {

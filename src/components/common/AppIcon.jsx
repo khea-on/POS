@@ -71,6 +71,25 @@ function AppIcon({ name, className = "", title }) {
       );
     }
 
+    if (name === "download") {
+      return (
+        <svg {...commonProps}>
+          <path d="M12 6v10" />
+          <path d="m8.5 12.5 3.5 3.5 3.5-3.5" />
+          <path d="M5 18.5h14" />
+        </svg>
+      );
+    }
+
+    if (name === "copy") {
+      return (
+        <svg {...commonProps}>
+          <rect x="9" y="9" width="11" height="11" rx="2" />
+          <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
+        </svg>
+      );
+    }
+
     if (name === "logout") {
       return (
         <svg {...commonProps}>
@@ -251,6 +270,17 @@ function AppIcon({ name, className = "", title }) {
           <path d="M7 18v-1.2A3.8 3.8 0 0 1 10.8 13h2.4A3.8 3.8 0 0 1 17 16.8V18" />
           <circle cx="12" cy="8" r="3" />
           <path d="M4 19h16" />
+        </svg>
+      );
+    }
+
+    if (name === "ocr") {
+      return (
+        <svg {...commonProps}>
+          <rect x="4" y="4" width="16" height="16" rx="2.5" />
+          <path d="M8 9h8" />
+          <path d="M8 13h5" />
+          <path d="m14.5 16.5 1.8 1.8 3-3" />
         </svg>
       );
     }

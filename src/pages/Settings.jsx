@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
-import { POS_APP, getAuthSession, hasModuleAccess } from "../services/authSession";
+import {
+  POS_APP,
+  getAuthSession,
+  getBestAvailablePath,
+  hasAppAccess,
+  hasModuleAccess,
+  persistAuthSession,
+} from "../services/authSession";
 
 const DEFAULT_USER_FORM = {
   username: "",
@@ -57,6 +65,7 @@ const getUserAvatarUrl = (user) => {
 
 function Settings() {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [imageUrl, setImageUrl] = useState(localStorage.getItem("imageUrl") || "");
   const [profile, setProfile] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -246,6 +255,10 @@ function Settings() {
       return;
     }
 
+    const editingUser = users.find((user) => user.id === editingUserId);
+    const isEditingCurrentUser =
+      String(editingUser?.username || "").toLowerCase() === currentUsername.toLowerCase();
+
     setSavingUser(true);
     setUsersMessage("");
     setUsersError("");
@@ -267,6 +280,11 @@ function Settings() {
         defaultApp: userForm.defaultApp,
       });
 
+      let nextSession = null;
+      if (isEditingCurrentUser && updated?.currentSession) {
+        nextSession = persistAuthSession(updated.currentSession);
+      }
+
       setUsersMessage(
         t("settings.userUpdated", {
           username: updated?.username || userForm.username.trim(),
@@ -275,6 +293,16 @@ function Settings() {
       setShowEditUserModal(false);
       setEditingUserId(null);
       setUserForm(DEFAULT_USER_FORM);
+
+      if (nextSession) {
+        const canStayInAccessControl = hasAppAccess(POS_APP, nextSession)
+          && hasModuleAccess(POS_APP, "access-control", nextSession);
+        if (!canStayInAccessControl) {
+          navigate(getBestAvailablePath(nextSession), { replace: true });
+          return;
+        }
+      }
+
       await Promise.all([loadUsers(), loadSettingsData()]);
     } catch (err) {
       const apiError = err.response?.data;
@@ -695,10 +723,10 @@ function Settings() {
                         <button
                           type="button"
                           className="inventory-action-btn inventory-edit-action-btn"
-                          disabled={isBusy || isCurrentUser}
+                          disabled={isBusy}
                           onClick={() => handleOpenEditUserModal(user)}
                           aria-label={t("settings.editUser")}
-                          title={disabledReason || t("settings.editUser")}
+                          title={t("settings.editUser")}
                         >
                           <AppIcon name="edit" />
                         </button>
