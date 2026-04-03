@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">POS Workspace</string>
+    <string name="title_activity_main">POS Workspace</string>
+    <string name="package_name">com.stardark.pos</string>
+    <string name="custom_url_scheme">com.stardark.pos</string>
+</resources>

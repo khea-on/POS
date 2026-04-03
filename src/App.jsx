@@ -42,6 +42,7 @@ import RoleProtectedRoute from "./components/auth/RoleProtectedRoute";
 import MainLayout from "./components/layout/MainLayout";
 import AccessControl from "./pages/AccessControl";
 import AppChooser from "./pages/AppChooser";
+import CrmAttendance from "./pages/CrmAttendance";
 import CrmActivities from "./pages/CrmActivities";
 import CrmCustomers from "./pages/CrmCustomers";
 import CrmLeads from "./pages/CrmLeads";
@@ -185,6 +186,14 @@ function App() {
             element={(
               <ModuleAccessRoute app={CRM_APP} module="crm-customers">
                 <CrmCustomers />
+              </ModuleAccessRoute>
+            )}
+          />
+          <Route
+            path="/crm/attendance"
+            element={(
+              <ModuleAccessRoute app={CRM_APP} module="crm-attendance">
+                <CrmAttendance />
               </ModuleAccessRoute>
             )}
           />

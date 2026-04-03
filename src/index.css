@@ -5752,3 +5752,669 @@ textarea {
     linear-gradient(180deg, color-mix(in srgb, var(--glass-specular) 38%, transparent), transparent 42%),
     color-mix(in srgb, var(--input-bg) 92%, transparent);
 }
+
+.crm-attendance-page {
+  display: grid;
+  gap: 24px;
+}
+
+.crm-attendance-hero,
+.crm-attendance-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, white 8%, transparent), transparent 22%),
+    color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 10%, transparent),
+    0 22px 48px color-mix(in srgb, var(--shadow-strong) 20%, transparent);
+}
+
+.crm-attendance-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+  gap: 24px;
+  padding: 28px;
+}
+
+.crm-attendance-hero::after,
+.crm-attendance-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 18%, transparent), transparent 34%),
+    linear-gradient(120deg, color-mix(in srgb, white 8%, transparent), transparent 26%, transparent 78%, color-mix(in srgb, white 4%, transparent));
+  pointer-events: none;
+}
+
+.crm-attendance-hero-copy,
+.crm-attendance-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.crm-attendance-kicker {
+  display: inline-block;
+  margin-bottom: 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 66%, var(--text-muted));
+}
+
+.crm-attendance-hero-copy h2,
+.crm-attendance-card-head h3,
+.crm-attendance-table-head h3 {
+  margin: 0;
+}
+
+.crm-attendance-hero-copy h2 {
+  font-size: clamp(2rem, 3vw, 3rem);
+  line-height: 1.05;
+}
+
+.crm-attendance-hero-copy p,
+.crm-attendance-card-head p {
+  margin: 14px 0 0;
+  color: var(--text-muted);
+}
+
+.crm-attendance-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-content: start;
+}
+
+.crm-attendance-metric-card {
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, white 10%, transparent), transparent 24%),
+    color-mix(in srgb, var(--card-bg) 88%, transparent);
+}
+
+.crm-attendance-metric-card span,
+.crm-attendance-metric-card small,
+.crm-attendance-detail-grid dt,
+.crm-attendance-table td span {
+  color: var(--text-muted);
+}
+
+.crm-attendance-metric-card strong {
+  display: block;
+  margin: 8px 0 4px;
+  font-size: 1.8rem;
+}
+
+.crm-attendance-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.24fr) minmax(320px, 0.92fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.crm-attendance-card {
+  padding: 24px;
+}
+
+.crm-attendance-scan-card {
+  grid-row: span 2;
+}
+
+.crm-attendance-table-card {
+  grid-column: 1 / -1;
+}
+
+.crm-attendance-table-head,
+.crm-attendance-card-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.crm-attendance-card-head {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.crm-attendance-mode-switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  background: color-mix(in srgb, var(--input-bg) 88%, transparent);
+}
+
+.crm-attendance-mode-switch button,
+.crm-attendance-sample-pill {
+  cursor: pointer;
+}
+
+.crm-attendance-mode-switch button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.crm-attendance-mode-switch button.active {
+  color: var(--text);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, white 18%, transparent), transparent 60%),
+    color-mix(in srgb, var(--accent) 30%, var(--surface));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 16%, transparent);
+}
+
+.crm-attendance-scanner-stage {
+  position: relative;
+  min-height: 300px;
+  margin-bottom: 16px;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--accent) 16%, transparent), transparent 42%),
+    color-mix(in srgb, var(--surface-elevated) 88%, black);
+}
+
+.crm-attendance-video {
+  width: 100%;
+  min-height: 300px;
+  display: block;
+  object-fit: cover;
+}
+
+.crm-attendance-scanner-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 24px;
+  background: linear-gradient(180deg, color-mix(in srgb, black 12%, transparent), color-mix(in srgb, black 38%, transparent));
+}
+
+.crm-attendance-scanner-overlay span {
+  width: min(72%, 260px);
+  aspect-ratio: 1 / 1;
+  border-radius: 28px;
+  border: 2px solid color-mix(in srgb, var(--success) 78%, white);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, white 12%, transparent),
+    0 0 28px color-mix(in srgb, var(--success) 26%, transparent);
+}
+
+.crm-attendance-scanner-overlay p {
+  margin: 18px 0 0;
+  max-width: 420px;
+  color: #f4f7fb;
+}
+
+.crm-attendance-action-row,
+.crm-attendance-sample-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.crm-attendance-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.crm-attendance-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.crm-attendance-form label span {
+  font-weight: 600;
+}
+
+.crm-attendance-form input,
+.crm-attendance-form select {
+  width: 100%;
+  height: 50px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+  background: color-mix(in srgb, var(--input-bg) 92%, transparent);
+  color: var(--text);
+  outline: none;
+}
+
+.crm-attendance-form input:focus,
+.crm-attendance-form select:focus {
+  border-color: color-mix(in srgb, var(--accent) 54%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.crm-attendance-form-actions {
+  grid-column: 1 / -1;
+}
+
+.crm-attendance-sample-row {
+  margin-top: 18px;
+}
+
+.crm-attendance-sample-row span {
+  color: var(--text-muted);
+}
+
+.crm-attendance-sample-pill {
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+  background: color-mix(in srgb, var(--card-bg) 86%, transparent);
+  color: var(--text);
+}
+
+.crm-attendance-inline-note,
+.crm-attendance-inline-error,
+.crm-attendance-page-alert {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+}
+
+.crm-attendance-inline-note {
+  color: var(--text);
+  background: color-mix(in srgb, var(--info-bg, var(--surface-elevated)) 80%, transparent);
+}
+
+.crm-attendance-inline-error,
+.crm-attendance-page-alert {
+  color: #fff1f0;
+  border: 1px solid color-mix(in srgb, var(--danger-border) 82%, transparent);
+  background: color-mix(in srgb, var(--danger-bg) 84%, transparent);
+}
+
+.crm-attendance-page-alert {
+  margin-top: -4px;
+}
+
+.crm-attendance-result-card,
+.crm-attendance-lookup-card {
+  min-height: 290px;
+}
+
+.crm-attendance-placeholder-card {
+  display: grid;
+  place-content: center;
+}
+
+.crm-attendance-icon-badge,
+.crm-attendance-pill,
+.crm-attendance-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crm-attendance-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  background: color-mix(in srgb, var(--input-bg) 88%, transparent);
+}
+
+.crm-attendance-pill,
+.crm-attendance-status-pill {
+  width: fit-content;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.crm-attendance-pill {
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  background: color-mix(in srgb, var(--card-bg) 86%, transparent);
+}
+
+.crm-attendance-result-success {
+  border-color: color-mix(in srgb, var(--success) 34%, var(--border));
+}
+
+.crm-attendance-result-error {
+  border-color: color-mix(in srgb, var(--danger) 34%, var(--border));
+}
+
+.crm-attendance-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.crm-attendance-detail-grid div {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  background: color-mix(in srgb, var(--card-bg) 84%, transparent);
+}
+
+.crm-attendance-detail-grid dt {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.84rem;
+}
+
+.crm-attendance-detail-grid dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.crm-attendance-empty-state {
+  display: grid;
+  place-content: center;
+  min-height: 170px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.crm-attendance-table-wrap {
+  overflow-x: auto;
+}
+
+.crm-attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.crm-attendance-table th {
+  padding: 0 0 14px;
+  text-align: left;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.crm-attendance-table td {
+  padding: 16px 0;
+  border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  vertical-align: middle;
+}
+
+.crm-attendance-table td strong,
+.crm-attendance-table td span {
+  display: block;
+}
+
+.crm-attendance-status-pill {
+  border: 1px solid transparent;
+}
+
+.crm-attendance-status-pill.positive {
+  color: #d8ffe3;
+  background: rgba(41, 146, 96, 0.28);
+  border-color: rgba(41, 146, 96, 0.38);
+}
+
+.crm-attendance-status-pill.warning {
+  color: #ffeecf;
+  background: rgba(188, 126, 24, 0.28);
+  border-color: rgba(188, 126, 24, 0.38);
+}
+
+.crm-attendance-status-pill.danger {
+  color: #ffe2e1;
+  background: rgba(148, 48, 60, 0.28);
+  border-color: rgba(148, 48, 60, 0.38);
+}
+
+@media (max-width: 1180px) {
+  .crm-attendance-hero,
+  .crm-attendance-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-attendance-scan-card {
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .crm-attendance-hero,
+  .crm-attendance-card {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .crm-attendance-metrics,
+  .crm-attendance-form,
+  .crm-attendance-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-attendance-table-head,
+  .crm-attendance-card-head {
+    flex-direction: column;
+  }
+
+  .crm-attendance-mode-switch {
+    width: 100%;
+  }
+}
+
+body,
+#root {
+  min-height: 100dvh;
+}
+
+.mobile-nav-dock,
+.crm-attendance-mobile-list {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .stardark-shell,
+  .stardark-main {
+    min-height: 100dvh;
+    height: 100dvh;
+  }
+
+  .stardark-sidebar {
+    height: 100dvh;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .page-content {
+    padding: 14px 12px calc(108px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-nav-dock {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    z-index: 14;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 24px;
+    border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, white 12%, transparent), transparent 44%),
+      color-mix(in srgb, var(--nav-bg) 94%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 20px 36px color-mix(in srgb, var(--shadow-strong) 22%, transparent);
+  }
+
+  .mobile-nav-menu-btn,
+  .mobile-nav-link {
+    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+    border-radius: 18px;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, white 8%, transparent), transparent 50%),
+      color-mix(in srgb, var(--panel) 90%, transparent);
+    color: var(--text);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .mobile-nav-menu-btn {
+    width: 76px;
+    padding: 10px 8px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .mobile-nav-menu-btn .app-icon,
+  .mobile-nav-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .mobile-nav-scroll {
+    display: flex;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .mobile-nav-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-nav-link {
+    min-width: 88px;
+    padding: 10px 12px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .mobile-nav-link.active {
+    color: var(--text-on-accent);
+    border-color: rgba(255, 255, 255, 0.18);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06) 34%, transparent 100%),
+      linear-gradient(135deg, var(--accent-2), var(--accent));
+    box-shadow: 0 16px 28px color-mix(in srgb, var(--accent-2) 22%, transparent);
+  }
+
+  .mobile-nav-text,
+  .mobile-nav-menu-btn span {
+    width: 100%;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .crm-attendance-action-row > .primary-btn,
+  .crm-attendance-action-row > .screen-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .crm-attendance-table-wrap {
+    display: none;
+  }
+
+  .crm-attendance-mobile-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .crm-attendance-mobile-record {
+    border-radius: 20px;
+    border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, white 10%, transparent), transparent 28%),
+      color-mix(in srgb, var(--card-bg) 88%, transparent);
+    padding: 16px;
+  }
+
+  .crm-attendance-mobile-record-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .crm-attendance-mobile-record-head strong,
+  .crm-attendance-mobile-record-head span,
+  .crm-attendance-mobile-record-grid dt {
+    display: block;
+  }
+
+  .crm-attendance-mobile-record-head > div span {
+    margin-top: 4px;
+    color: var(--text-muted);
+  }
+
+  .crm-attendance-mobile-record-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .crm-attendance-mobile-record-grid div {
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    background: color-mix(in srgb, var(--input-bg) 88%, transparent);
+  }
+
+  .crm-attendance-mobile-record-grid dt {
+    margin-bottom: 4px;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+  }
+
+  .crm-attendance-mobile-record-grid dd {
+    margin: 0;
+    font-weight: 600;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 520px) {
+  .mobile-nav-menu-btn {
+    width: 72px;
+  }
+
+  .mobile-nav-link {
+    min-width: 82px;
+  }
+
+  .crm-attendance-scanner-stage,
+  .crm-attendance-video {
+    min-height: 240px;
+  }
+
+  .crm-attendance-mobile-record-grid {
+    grid-template-columns: 1fr;
+  }
+}

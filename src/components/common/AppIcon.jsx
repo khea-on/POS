@@ -52,6 +52,25 @@ function AppIcon({ name, className = "", title }) {
       );
     }
 
+    if (name === "clock") {
+      return (
+        <svg {...commonProps}>
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M12 7.8v4.8l3.1 2" />
+        </svg>
+      );
+    }
+
+    if (name === "upload") {
+      return (
+        <svg {...commonProps}>
+          <path d="M12 16V6" />
+          <path d="m8.5 9.5 3.5-3.5 3.5 3.5" />
+          <path d="M5 18.5h14" />
+        </svg>
+      );
+    }
+
     if (name === "logout") {
       return (
         <svg {...commonProps}>

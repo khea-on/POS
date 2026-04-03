@@ -1,0 +1,19 @@
+{
+  "name": "POS Workspace",
+  "short_name": "POS",
+  "description": "Mobile-ready POS and CRM workspace with staff attendance scanning.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f1217",
+  "theme_color": "#24b4af",
+  "icons": [
+    {
+      "src": "./mobile-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

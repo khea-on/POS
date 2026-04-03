@@ -21,6 +21,13 @@ function CrmWorkspace() {
       icon: "user",
     },
     {
+      key: "crm-attendance",
+      to: "/crm/attendance",
+      title: t("nav.crmAttendance"),
+      description: t("crm.attendance.subtitle"),
+      icon: "clock",
+    },
+    {
       key: "crm-leads",
       to: "/crm/leads",
       title: t("nav.crmLeads"),

@@ -20,6 +20,8 @@ const ACTIVE_APP_KEY = "activeApp";
 const ALLOWED_APPS_KEY = "allowedApps";
 const POS_MODULES_KEY = "posModules";
 const CRM_MODULES_KEY = "crmModules";
+const CRM_MODULE_SCHEMA_VERSION_KEY = "crmModuleSchemaVersion";
+const CRM_MODULE_SCHEMA_VERSION = "crm-attendance-v1";
 
 export const normalizeApp = (value) => {
   const normalized = String(value || "").trim().toUpperCase();
@@ -72,6 +74,24 @@ export const parseModuleKeys = (value) => {
   return [];
 };
 
+const migrateLegacyCrmModules = (crmModules) => {
+  if (localStorage.getItem(CRM_MODULE_SCHEMA_VERSION_KEY) === CRM_MODULE_SCHEMA_VERSION) {
+    return crmModules;
+  }
+
+  const shouldAddAttendance = crmModules.length > 0 && !crmModules.includes("crm-attendance");
+  const nextModules = shouldAddAttendance
+    ? normalizeModuleKeys([...crmModules, "crm-attendance"], CRM_MODULES)
+    : crmModules;
+
+  if (shouldAddAttendance) {
+    localStorage.setItem(CRM_MODULES_KEY, JSON.stringify(nextModules));
+  }
+  localStorage.setItem(CRM_MODULE_SCHEMA_VERSION_KEY, CRM_MODULE_SCHEMA_VERSION);
+
+  return nextModules;
+};
+
 export const getAuthSession = () => {
   const token = localStorage.getItem(TOKEN_KEY) || "";
   const role = localStorage.getItem(ROLE_KEY) || "Cashier";
@@ -91,10 +111,10 @@ export const getAuthSession = () => {
     parseModuleKeys(localStorage.getItem(POS_MODULES_KEY)),
     POS_MODULES
   );
-  const crmModules = normalizeModuleKeys(
+  const crmModules = migrateLegacyCrmModules(normalizeModuleKeys(
     parseModuleKeys(localStorage.getItem(CRM_MODULES_KEY)),
     CRM_MODULES
-  );
+  ));
 
   return {
     token,
@@ -217,6 +237,7 @@ export const persistAuthSession = (data) => {
     CRM_MODULES_KEY,
     JSON.stringify(crmModules.length > 0 ? crmModules : getDefaultCrmModules(crmRole || "CrmUser"))
   );
+  localStorage.setItem(CRM_MODULE_SCHEMA_VERSION_KEY, CRM_MODULE_SCHEMA_VERSION);
   setActiveApp(defaultApp);
 
   return getAuthSession();
@@ -235,5 +256,6 @@ export const clearAuthSession = () => {
     ALLOWED_APPS_KEY,
     POS_MODULES_KEY,
     CRM_MODULES_KEY,
+    CRM_MODULE_SCHEMA_VERSION_KEY,
   ].forEach((key) => localStorage.removeItem(key));
 };

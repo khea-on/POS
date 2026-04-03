@@ -1,0 +1,13 @@
+{
+  "appId": "com.stardark.pos",
+  "appName": "POS Workspace",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

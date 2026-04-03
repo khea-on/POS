@@ -28,6 +28,7 @@ const posMenuItems = [
 const crmMenuItems = [
   { labelKey: "nav.crmWorkspace", to: "/crm", icon: "crm", module: "crm" },
   { labelKey: "nav.crmCustomers", to: "/crm/customers", icon: "user", module: "crm-customers" },
+  { labelKey: "nav.crmAttendance", to: "/crm/attendance", icon: "clock", module: "crm-attendance" },
   { labelKey: "nav.crmLeads", to: "/crm/leads", icon: "reports", module: "crm-leads" },
   { labelKey: "nav.crmActivities", to: "/crm/activities", icon: "help", module: "crm-activities" },
 ];
@@ -49,11 +50,13 @@ const getLocalizedRole = (role, t) => {
   return role;
 };
 
+const isCompactViewport = () => typeof window !== "undefined" && window.innerWidth <= 760;
+
 function MainLayout({ app = POS_APP }) {
   const { language, setLanguage, t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(() => !isCompactViewport());
   const session = getAuthSession();
   const currentApp = app === CRM_APP ? CRM_APP : POS_APP;
   const isCrmApp = currentApp === CRM_APP;
@@ -98,6 +101,12 @@ function MainLayout({ app = POS_APP }) {
     setActiveApp(currentApp);
   }, [currentApp]);
 
+  useEffect(() => {
+    if (isCompactViewport()) {
+      setIsMenuOpen(false);
+    }
+  }, [location.pathname]);
+
   const pageTitle = useMemo(() => {
     const current = visibleMenuItems.find((item) => item.to === location.pathname);
     if (current) {
@@ -123,6 +132,12 @@ function MainLayout({ app = POS_APP }) {
 
   const toggleLanguage = () => {
     setLanguage(language === "km" ? "en" : "km");
+  };
+
+  const handleMenuLinkClick = () => {
+    if (isCompactViewport()) {
+      setIsMenuOpen(false);
+    }
   };
 
   const renderUserAvatar = (className = "") =>
@@ -212,6 +227,10 @@ function MainLayout({ app = POS_APP }) {
       return <AppIcon name="crm" />;
     }
 
+    if (iconName === "clock") {
+      return <AppIcon name="clock" />;
+    }
+
     if (iconName === "user") {
       return <AppIcon name="user" />;
     }
@@ -223,6 +242,37 @@ function MainLayout({ app = POS_APP }) {
       </svg>
     );
   };
+
+  const renderSidebarMenuLink = (item) => (
+    <NavLink
+      key={item.to}
+      to={item.to}
+      className={({ isActive }) => `menu-link ${isActive ? "active" : ""}`.trim()}
+      onClick={handleMenuLinkClick}
+    >
+      <span className="menu-link-content">
+        <span className="menu-link-icon" aria-hidden="true">
+          {renderMenuIcon(item.icon)}
+        </span>
+        <span className="menu-link-text">{item.labelKey ? t(item.labelKey) : item.label}</span>
+      </span>
+      <span className="menu-link-indicator" aria-hidden="true" />
+    </NavLink>
+  );
+
+  const renderMobileMenuLink = (item) => (
+    <NavLink
+      key={`mobile-${item.to}`}
+      to={item.to}
+      className={({ isActive }) => `mobile-nav-link ${isActive ? "active" : ""}`.trim()}
+      onClick={handleMenuLinkClick}
+    >
+      <span className="mobile-nav-icon" aria-hidden="true">
+        {renderMenuIcon(item.icon)}
+      </span>
+      <span className="mobile-nav-text">{item.labelKey ? t(item.labelKey) : item.label}</span>
+    </NavLink>
+  );
 
   return (
     <div className={`stardark-shell ${isCrmApp ? "crm-shell" : ""}`.trim()}>
@@ -247,22 +297,7 @@ function MainLayout({ app = POS_APP }) {
           </button>
         </div>
         <nav className="stardark-nav">
-          {visibleMenuItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `menu-link ${isActive ? "active" : ""}`}
-              onClick={() => window.innerWidth <= 760 && setIsMenuOpen(false)}
-            >
-              <span className="menu-link-content">
-                <span className="menu-link-icon" aria-hidden="true">
-                  {renderMenuIcon(item.icon)}
-                </span>
-                <span className="menu-link-text">{item.labelKey ? t(item.labelKey) : item.label}</span>
-              </span>
-              <span className="menu-link-indicator" aria-hidden="true" />
-            </NavLink>
-          ))}
+          {visibleMenuItems.map(renderSidebarMenuLink)}
         </nav>
         <div className="sidebar-footer">
             <div className="sidebar-user-card">
@@ -377,6 +412,21 @@ function MainLayout({ app = POS_APP }) {
         <main className="page-content">
           <Outlet />
         </main>
+        <div className="mobile-nav-dock" role="navigation" aria-label={t("common.mobileNavigation")}>
+          <button
+            className="mobile-nav-menu-btn"
+            type="button"
+            onClick={() => setIsMenuOpen(true)}
+            aria-label={t("common.openMenu")}
+            title={t("common.openMenu")}
+          >
+            <AppIcon name="menu" />
+            <span>{t("common.menu")}</span>
+          </button>
+          <div className="mobile-nav-scroll">
+            {visibleMenuItems.map(renderMobileMenuLink)}
+          </div>
+        </div>
       </section>
     </div>
   );

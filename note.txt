@@ -47,3 +47,7 @@ robocopy dist C:\inetpub\wwwroot\POS /MIR
 rg -n "http://localhost:5000/api|/POS/assets/|/POSAPI/api" dist -S
 
 cmd /c "if not exist C:\inetpub\wwwroot\POS mkdir C:\inetpub\wwwroot\POS && robocopy C:\Users\ROG\Documents\ReactJs\POS\dist C:\inetpub\wwwroot\POS /MIR
+
+cd "C:\Users\ROG\Documents\ReactJs\POS"
+npm install
+npm run dev -- --host 0.0.0.0

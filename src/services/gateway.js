@@ -29,6 +29,14 @@ export const routes = {
     summary: "/crm/summary",
     customers: "/crm/customers",
     customerById: (customerId) => `/crm/customers/${customerId}`,
+    attendance: {
+      today: "/crm/attendance/today",
+      scan: "/crm/attendance/scan",
+      checkIn: "/crm/attendance/checkin",
+      checkOut: "/crm/attendance/checkout",
+      staff: "/crm/staff",
+      staffByCode: (staffCode) => `/crm/staff/${encodeURIComponent(staffCode)}`,
+    },
     leads: "/crm/leads",
     leadById: (leadId) => `/crm/leads/${leadId}`,
     activities: "/crm/activities",
@@ -84,6 +92,14 @@ const gateway = {
   },
   crm: {
     getSummary: () => unwrap(api.get(routes.crm.summary)),
+    attendance: {
+      getToday: () => unwrap(api.get(routes.crm.attendance.today)),
+      scan: (payload) => unwrap(api.post(routes.crm.attendance.scan, payload)),
+      checkIn: (payload) => unwrap(api.post(routes.crm.attendance.checkIn, payload)),
+      checkOut: (payload) => unwrap(api.post(routes.crm.attendance.checkOut, payload)),
+      getStaff: (staffCode) => unwrap(api.get(routes.crm.attendance.staffByCode(staffCode))),
+      getStaffList: () => unwrap(api.get(routes.crm.attendance.staff)),
+    },
     customers: {
       getAll: (params) => unwrap(api.get(routes.crm.customers, { params })),
       getById: (customerId) => unwrap(api.get(routes.crm.customerById(customerId))),
