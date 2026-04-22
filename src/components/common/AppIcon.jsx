@@ -264,6 +264,15 @@ function AppIcon({ name, className = "", title }) {
       );
     }
 
+    if (name === "bell") {
+      return (
+        <svg {...commonProps}>
+          <path d="M6.5 9.8a5.5 5.5 0 1 1 11 0c0 4 1.7 5.4 2.3 6H4.2c.6-.6 2.3-2 2.3-6Z" />
+          <path d="M10 18.2a2.3 2.3 0 0 0 4 0" />
+        </svg>
+      );
+    }
+
     if (name === "crm") {
       return (
         <svg {...commonProps}>

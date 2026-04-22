@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import LanguageSwitcher from "../common/LanguageSwitcher";
 import AppIcon from "../common/AppIcon";
 import useI18n from "../../i18n/useI18n";
+import gateway from "../../services/gateway";
 import {
   CRM_APP,
   POS_APP,
@@ -12,6 +13,8 @@ import {
   hasModuleAccess,
   setActiveApp,
 } from "../../services/authSession";
+import { startOrderNotificationStream } from "../../services/orderNotifications";
+import { formatUsdAsKhr } from "../../utils/currency";
 
 const posMenuItems = [
   { labelKey: "nav.dashboard", to: "/dashboard", icon: "dashboard", roles: ["Admin", "Cashier"], module: "dashboard" },
@@ -33,6 +36,19 @@ const crmMenuItems = [
   { labelKey: "nav.crmLeads", to: "/crm/leads", icon: "reports", module: "crm-leads" },
   { labelKey: "nav.crmActivities", to: "/crm/activities", icon: "help", module: "crm-activities" },
 ];
+
+const MAX_NAVBAR_NOTIFICATIONS = 8;
+
+const getNotificationIdentity = (notification) =>
+  notification?.notificationId || `${notification?.type || "order"}-${notification?.orderId || "0"}-${notification?.occurredAtUtc || ""}`;
+
+const mergeNotification = (notifications, incomingNotification) => {
+  const incomingId = getNotificationIdentity(incomingNotification);
+  return [
+    incomingNotification,
+    ...notifications.filter((notification) => getNotificationIdentity(notification) !== incomingId),
+  ].slice(0, MAX_NAVBAR_NOTIFICATIONS);
+};
 
 const getLocalizedRole = (role, t) => {
   const normalizedRole = String(role || "").toLowerCase();
@@ -65,6 +81,12 @@ function MainLayout({ app = POS_APP }) {
   const [theme, setTheme] = useState(
     localStorage.getItem("theme") === "light" ? "light" : "dark"
   );
+  const [notifications, setNotifications] = useState([]);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+  const [notificationStreamStatus, setNotificationStreamStatus] = useState("idle");
+  const notificationPanelRef = useRef(null);
+  const notificationsOpenRef = useRef(false);
   const availableApps = session.allowedApps;
   const userRole = currentApp === CRM_APP
     ? (session.crmRole || "CrmUser")
@@ -108,6 +130,135 @@ function MainLayout({ app = POS_APP }) {
     }
   }, [location.pathname]);
 
+  useEffect(() => {
+    notificationsOpenRef.current = isNotificationsOpen;
+    if (isNotificationsOpen) {
+      setNotificationUnreadCount(0);
+    }
+  }, [isNotificationsOpen]);
+
+  useEffect(() => {
+    if (!isNotificationsOpen) {
+      return undefined;
+    }
+
+    const handleMouseDown = (event) => {
+      if (notificationPanelRef.current?.contains(event.target)) {
+        return;
+      }
+
+      if (event.target instanceof Element && event.target.closest(".navbar-notification-btn")) {
+        return;
+      }
+
+      setIsNotificationsOpen(false);
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isNotificationsOpen]);
+
+  useEffect(() => {
+    if (isCrmApp) {
+      setIsNotificationsOpen(false);
+      setNotifications([]);
+      setNotificationUnreadCount(0);
+      setNotificationStreamStatus("idle");
+      return undefined;
+    }
+
+    if (!session.token) {
+      setNotifications([]);
+      setNotificationUnreadCount(0);
+      setNotificationStreamStatus("idle");
+      return undefined;
+    }
+
+    let disposed = false;
+    let reconnectTimerId = 0;
+    let streamAbortController = null;
+
+    const handleIncomingNotification = (notification) => {
+      if (!notification || (!notification.notificationId && !notification.orderId)) {
+        return;
+      }
+
+      setNotificationStreamStatus("live");
+      setNotifications((current) => mergeNotification(current, notification));
+
+      if (!notificationsOpenRef.current) {
+        setNotificationUnreadCount((current) => Math.min(current + 1, 99));
+      }
+
+      window.dispatchEvent(new CustomEvent("pos-order-notification", { detail: notification }));
+    };
+
+    const loadRecentNotifications = async () => {
+      try {
+        const recentNotifications = await gateway.notifications.getRecent({ take: MAX_NAVBAR_NOTIFICATIONS });
+        if (!disposed) {
+          setNotifications(Array.isArray(recentNotifications) ? recentNotifications.slice(0, MAX_NAVBAR_NOTIFICATIONS) : []);
+        }
+      } catch {
+        if (!disposed) {
+          setNotificationStreamStatus("offline");
+        }
+      }
+    };
+
+    const connectToStream = async (attempt = 0) => {
+      if (disposed) {
+        return;
+      }
+
+      setNotificationStreamStatus(attempt === 0 ? "connecting" : "reconnecting");
+      streamAbortController = new AbortController();
+
+      try {
+        await startOrderNotificationStream({
+          signal: streamAbortController.signal,
+          onMessage: handleIncomingNotification,
+        });
+
+        if (disposed || streamAbortController.signal.aborted) {
+          return;
+        }
+
+        throw new Error("Notification stream ended.");
+      } catch {
+        if (disposed || streamAbortController.signal.aborted) {
+          return;
+        }
+
+        setNotificationStreamStatus("offline");
+        const retryDelayMs = Math.min(1000 * 2 ** attempt, 10000);
+        reconnectTimerId = window.setTimeout(() => {
+          connectToStream(Math.min(attempt + 1, 4));
+        }, retryDelayMs);
+      }
+    };
+
+    loadRecentNotifications();
+    connectToStream();
+
+    return () => {
+      disposed = true;
+      window.clearTimeout(reconnectTimerId);
+      streamAbortController?.abort();
+    };
+  }, [isCrmApp, session.token]);
+
   const pageTitle = useMemo(() => {
     const current = visibleMenuItems.find((item) => item.to === location.pathname);
     if (current) {
@@ -133,6 +284,21 @@ function MainLayout({ app = POS_APP }) {
 
   const toggleLanguage = () => {
     setLanguage(language === "km" ? "en" : "km");
+  };
+
+  const toggleNotifications = () => {
+    setIsNotificationsOpen((prev) => !prev);
+  };
+
+  const handleNotificationSelect = (notification) => {
+    setIsNotificationsOpen(false);
+    setNotificationUnreadCount(0);
+    navigate("/pos", {
+      state: {
+        selectedOrderId: notification.orderId,
+        selectedOrderEventKey: getNotificationIdentity(notification),
+      },
+    });
   };
 
   const handleMenuLinkClick = () => {
@@ -248,6 +414,86 @@ function MainLayout({ app = POS_APP }) {
     );
   };
 
+  const getNotificationStreamLabel = () => {
+    if (notificationStreamStatus === "live") {
+      return t("notifications.live");
+    }
+
+    if (notificationStreamStatus === "connecting" || notificationStreamStatus === "reconnecting") {
+      return t("notifications.reconnecting");
+    }
+
+    return t("notifications.offline");
+  };
+
+  const getNotificationStreamTone = () => {
+    if (notificationStreamStatus === "live") {
+      return "live";
+    }
+
+    if (notificationStreamStatus === "connecting" || notificationStreamStatus === "reconnecting") {
+      return "reconnecting";
+    }
+
+    return "offline";
+  };
+
+  const formatNotificationTime = (occurredAtUtc) => {
+    const date = new Date(occurredAtUtc);
+    if (Number.isNaN(date.getTime())) {
+      return "-";
+    }
+
+    return date.toLocaleString(language === "km" ? "km-KH" : undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const renderNotificationTitle = (notification) =>
+    notification.type === "order-cancelled"
+      ? t("notifications.orderCancelledTitle")
+      : t("notifications.orderPaidTitle");
+
+  const renderNotificationMessage = (notification) => {
+    const usernameLabel = notification.username || t("common.user");
+    const totalLabel = formatUsdAsKhr(Number(notification.totalAmount || 0), language);
+
+    if (notification.type === "order-cancelled") {
+      return t("notifications.orderCancelledMessage", {
+        id: notification.orderId,
+        username: usernameLabel,
+        total: totalLabel,
+      });
+    }
+
+    return t("notifications.orderPaidMessage", {
+      id: notification.orderId,
+      username: usernameLabel,
+      items: notification.itemCount || 0,
+      total: totalLabel,
+    });
+  };
+
+  const renderNotificationButton = () => (
+    <button
+      className={`navbar-icon-btn navbar-notification-btn ${isNotificationsOpen ? "active" : ""}`.trim()}
+      type="button"
+      onClick={toggleNotifications}
+      aria-label={t("notifications.openPanel")}
+      title={t("notifications.openPanel")}
+    >
+      <AppIcon name="bell" />
+      {notificationUnreadCount > 0 ? (
+        <span className="navbar-notification-badge">
+          {notificationUnreadCount > 99 ? "99+" : notificationUnreadCount}
+        </span>
+      ) : null}
+    </button>
+  );
+
   const renderSidebarMenuLink = (item) => (
     <NavLink
       key={item.to}
@@ -355,6 +601,7 @@ function MainLayout({ app = POS_APP }) {
                 ))}
               </div>
             ) : null}
+            {!isCrmApp ? renderNotificationButton() : null}
             <button
               className="navbar-icon-btn navbar-language-btn"
               type="button"
@@ -386,6 +633,7 @@ function MainLayout({ app = POS_APP }) {
           </div>
           <div className="nav-actions">
             <div className="nav-action-group nav-action-group-preferences">
+              {!isCrmApp ? renderNotificationButton() : null}
               <LanguageSwitcher />
               <button
                 className="theme-toggle"
@@ -412,6 +660,52 @@ function MainLayout({ app = POS_APP }) {
               </button>
             </div>
           </div>
+          {!isCrmApp && isNotificationsOpen ? (
+            <div
+              ref={notificationPanelRef}
+              className="notification-panel"
+              role="dialog"
+              aria-label={t("notifications.title")}
+            >
+              <div className="notification-panel-header">
+                <div className="notification-panel-title">
+                  <span className="navbar-kicker">{t("notifications.kicker")}</span>
+                  <strong>{t("notifications.title")}</strong>
+                </div>
+                <span className={`notification-status notification-status-${getNotificationStreamTone()}`.trim()}>
+                  {getNotificationStreamLabel()}
+                </span>
+              </div>
+              {notifications.length === 0 ? (
+                <div className="notification-empty-state">
+                  <strong>{t("notifications.emptyTitle")}</strong>
+                  <p>{t("notifications.emptyBody")}</p>
+                </div>
+              ) : (
+                <div className="notification-list">
+                  {notifications.map((notification) => (
+                    <button
+                      key={getNotificationIdentity(notification)}
+                      className={`notification-item notification-item-button notification-item-${notification.type === "order-cancelled" ? "cancelled" : "paid"}`.trim()}
+                      type="button"
+                      onClick={() => handleNotificationSelect(notification)}
+                    >
+                      <div className="notification-item-header">
+                        <strong>{renderNotificationTitle(notification)}</strong>
+                        <span>{formatNotificationTime(notification.occurredAtUtc)}</span>
+                      </div>
+                      <p>{renderNotificationMessage(notification)}</p>
+                      <div className="notification-item-meta">
+                        <span>{t("notifications.orderLabel", { id: notification.orderId })}</span>
+                        <span>{t("notifications.itemsLabel", { count: notification.itemCount || 0 })}</span>
+                        <span>{notification.status}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
         </header>
 
         <main className="page-content">

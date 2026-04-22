@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import ProductGrid from "../components/pos/ProductGrid";
 import Cart from "../components/pos/Cart";
 import gateway from "../services/gateway";
@@ -86,10 +87,14 @@ const buildOrdersCsvFileName = (fromDateValue, toDateValue) => {
 
 function POS() {
   const { language, t } = useI18n();
+  const location = useLocation();
   const isAdmin = (localStorage.getItem("role") || "") === "Admin";
   const [activeScreen, setActiveScreen] = useState("items");
   const [cartItems, setCartItems] = useState(() => loadStoredCartItems());
   const [orders, setOrders] = useState([]);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [selectedOrderSnapshot, setSelectedOrderSnapshot] = useState(null);
+  const [selectedOrderLoading, setSelectedOrderLoading] = useState(false);
   const [lastCheckoutOrder, setLastCheckoutOrder] = useState(null);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
@@ -98,6 +103,8 @@ function POS() {
   const [checkoutAlert, setCheckoutAlert] = useState({ open: false, message: "" });
   const checkoutAlertTimeoutRef = useRef(null);
   const cartHighlightTimeoutRef = useRef(null);
+  const selectedOrderDetailRef = useRef(null);
+  const handledNotificationEventKeyRef = useRef("");
   const [recentAddToken, setRecentAddToken] = useState(0);
   const [recentAddQuantity, setRecentAddQuantity] = useState(1);
   const [highlightedCartKey, setHighlightedCartKey] = useState("");
@@ -152,6 +159,87 @@ function POS() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const handleRealtimeOrderNotification = () => {
+      fetchOrders(buildOrderRangeParams(invoiceFromDate, invoiceToDate));
+    };
+
+    window.addEventListener("pos-order-notification", handleRealtimeOrderNotification);
+    return () => {
+      window.removeEventListener("pos-order-notification", handleRealtimeOrderNotification);
+    };
+  }, [fetchOrders, invoiceFromDate, invoiceToDate]);
+
+  useEffect(() => {
+    if (!selectedOrderId) {
+      return;
+    }
+
+    const matchingOrder = orders.find((order) => order.id === selectedOrderId);
+    if (matchingOrder) {
+      setSelectedOrderSnapshot(matchingOrder);
+    }
+  }, [orders, selectedOrderId]);
+
+  const openOrderDetails = useCallback(async (orderId) => {
+    const normalizedOrderId = Number(orderId);
+    if (!Number.isInteger(normalizedOrderId) || normalizedOrderId <= 0) {
+      return;
+    }
+
+    setActiveScreen("invoices");
+    setSelectedOrderId(normalizedOrderId);
+    setError("");
+
+    const existingOrder = orders.find((order) => order.id === normalizedOrderId);
+    if (existingOrder) {
+      setSelectedOrderSnapshot(existingOrder);
+      setSelectedOrderLoading(false);
+      return;
+    }
+
+    setSelectedOrderLoading(true);
+    try {
+      const order = await gateway.orders.getById(normalizedOrderId);
+      setSelectedOrderSnapshot(order || null);
+    } catch {
+      setError(t("pos.couldNotLoadSelectedOrder"));
+    } finally {
+      setSelectedOrderLoading(false);
+    }
+  }, [orders, t]);
+
+  useEffect(() => {
+    const incomingOrderId = Number(location.state?.selectedOrderId);
+    const incomingEventKey = String(location.state?.selectedOrderEventKey || "");
+
+    if (!Number.isInteger(incomingOrderId) || incomingOrderId <= 0 || !incomingEventKey) {
+      return;
+    }
+
+    if (handledNotificationEventKeyRef.current === incomingEventKey) {
+      return;
+    }
+
+    handledNotificationEventKeyRef.current = incomingEventKey;
+    void openOrderDetails(incomingOrderId);
+  }, [location.state, openOrderDetails]);
+
+  useEffect(() => {
+    if (activeScreen !== "invoices" || !selectedOrderId) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      selectedOrderDetailRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 120);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activeScreen, selectedOrderId, selectedOrderLoading]);
 
   const handleAddItem = (item) => {
     const selectedSize = item.selectedSize || "Medium";
@@ -218,6 +306,15 @@ function POS() {
       ),
     [orders]
   );
+
+  const selectedOrder = useMemo(() => {
+    if (!selectedOrderId) {
+      return null;
+    }
+
+    return orders.find((order) => order.id === selectedOrderId)
+      || (selectedOrderSnapshot?.id === selectedOrderId ? selectedOrderSnapshot : null);
+  }, [orders, selectedOrderId, selectedOrderSnapshot]);
 
   const hasInvalidInvoiceRange =
     invoiceFromDate && invoiceToDate && invoiceToDate < invoiceFromDate;
@@ -742,7 +839,19 @@ function POS() {
             ) : (
               <div className="invoice-list">
                 {orders.map((order) => (
-                  <div className="list-row invoice-row" key={order.id}>
+                  <div
+                    className={`list-row invoice-row ${selectedOrderId === order.id ? "selected" : ""}`.trim()}
+                    key={order.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => void openOrderDetails(order.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        void openOrderDetails(order.id);
+                      }
+                    }}
+                  >
                     <div>
                       <div>{t("pos.orderWithId", { id: order.id })}</div>
                       <div className="muted-text">
@@ -755,9 +864,23 @@ function POS() {
                     </div>
                     <div className="invoice-actions">
                       <button
+                        className="audit-btn btn-with-icon"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void openOrderDetails(order.id);
+                        }}
+                      >
+                        <AppIcon name="link" />
+                        {t("pos.viewOrderDetails")}
+                      </button>
+                      <button
                         className="primary-btn btn-with-icon"
                         type="button"
-                        onClick={() => handlePrintInvoice(order)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handlePrintInvoice(order);
+                        }}
                       >
                         <AppIcon name="printer" />
                         {t("pos.printInvoice")}
@@ -766,7 +889,10 @@ function POS() {
                         <button
                           className="cancel-btn btn-with-icon"
                           type="button"
-                          onClick={() => handleCancelOrder(order.id)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleCancelOrder(order.id);
+                          }}
                         >
                           <AppIcon name="cancel" />
                           {t("common.cancel")}
@@ -778,6 +904,108 @@ function POS() {
               </div>
             )}
           </div>
+          {(selectedOrderId || selectedOrderLoading) ? (
+            <div ref={selectedOrderDetailRef} className="page-card order-detail-card">
+              <div className="order-detail-header">
+                <div>
+                  <h2>{t("pos.orderDetails")}</h2>
+                  <p className="muted-text">
+                    {selectedOrder
+                      ? t("pos.orderDetailsHint", {
+                        id: selectedOrder.id,
+                        date: new Date(selectedOrder.createdAtUtc).toLocaleString(),
+                      })
+                      : t("pos.loadingSelectedOrder")}
+                  </p>
+                </div>
+                <button
+                  className="audit-btn"
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrderId(null);
+                    setSelectedOrderSnapshot(null);
+                    setSelectedOrderLoading(false);
+                  }}
+                >
+                  {t("common.close")}
+                </button>
+              </div>
+
+              {selectedOrderLoading ? (
+                <p>{t("pos.loadingSelectedOrder")}</p>
+              ) : !selectedOrder ? (
+                <p>{t("pos.selectedOrderNotFound")}</p>
+              ) : (
+                <div className="order-detail-grid">
+                  <section className="order-detail-section">
+                    <h3>{t("pos.orderSummary")}</h3>
+                    <div className="order-detail-summary">
+                      <div className="order-detail-summary-item">
+                        <span>{t("pos.statusLabel")}</span>
+                        <strong>{getStatusLabel(selectedOrder.status)}</strong>
+                      </div>
+                      <div className="order-detail-summary-item">
+                        <span>{t("pos.subtotal")}</span>
+                        <strong>{formatUsdAsKhr(Number(selectedOrder.subtotal || 0), language)}</strong>
+                      </div>
+                      <div className="order-detail-summary-item">
+                        <span>{t("pos.tax")}</span>
+                        <strong>{formatUsdAsKhr(Number(selectedOrder.taxAmount || 0), language)}</strong>
+                      </div>
+                      <div className="order-detail-summary-item">
+                        <span>{t("pos.total")}</span>
+                        <strong>{formatUsdAsKhr(Number(selectedOrder.totalAmount || 0), language)}</strong>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="order-detail-section">
+                    <h3>{t("pos.orderItemsTitle")}</h3>
+                    <div className="order-detail-list">
+                      {(selectedOrder.items || []).map((item, index) => (
+                        <div className="order-detail-list-item" key={`${selectedOrder.id}-${item.id || index}`}>
+                          <div>
+                            <strong>{item.product?.name || `Product #${item.productId}`}</strong>
+                            <span>
+                              {t("pos.orderItemLine", {
+                                name: item.product?.name || `Product #${item.productId}`,
+                                size: getDisplaySize(item.size || "Medium"),
+                                quantity: item.quantity,
+                                total: formatUsdAsKhr(Number(item.lineTotal || 0), language),
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="order-detail-section">
+                    <h3>{t("pos.orderPaymentsTitle")}</h3>
+                    {(selectedOrder.payments || []).length === 0 ? (
+                      <p className="muted-text">{t("pos.noPaymentsRecorded")}</p>
+                    ) : (
+                      <div className="order-detail-list">
+                        {(selectedOrder.payments || []).map((payment, index) => (
+                          <div className="order-detail-list-item" key={`${selectedOrder.id}-payment-${payment.id || index}`}>
+                            <div>
+                              <strong>{getPaymentMethodLabel(payment.method)}</strong>
+                              <span>
+                                {t("pos.paymentLine", {
+                                  amount: formatUsdAsKhr(Number(payment.amount || 0), language),
+                                  date: new Date(payment.paidAtUtc).toLocaleString(),
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </div>
+              )}
+            </div>
+          ) : null}
         </>
       )}
     </div>

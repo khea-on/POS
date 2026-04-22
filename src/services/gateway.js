@@ -12,8 +12,13 @@ export const routes = {
   },
   orders: {
     root: "/orders",
+    byId: (orderId) => `/orders/${orderId}`,
     checkout: "/orders/checkout",
     cancel: (orderId) => `/orders/${orderId}/cancel`,
+  },
+  notifications: {
+    recent: "/notifications/recent",
+    stream: "/notifications/stream",
   },
   products: {
     root: "/products",
@@ -71,8 +76,12 @@ const gateway = {
   },
   orders: {
     getAll: (params) => unwrap(api.get(routes.orders.root, { params })),
+    getById: (orderId) => unwrap(api.get(routes.orders.byId(orderId))),
     checkout: (payload) => unwrap(api.post(routes.orders.checkout, payload)),
     cancel: (orderId) => unwrap(api.post(routes.orders.cancel(orderId))),
+  },
+  notifications: {
+    getRecent: (params) => unwrap(api.get(routes.notifications.recent, { params })),
   },
   products: {
     getAll: (params) => unwrap(api.get(routes.products.root, { params })),
