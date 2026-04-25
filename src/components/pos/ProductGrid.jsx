@@ -4,15 +4,9 @@ import useI18n from "../../i18n/useI18n";
 import gateway from "../../services/gateway";
 import AppIcon from "../common/AppIcon";
 import { convertKhrToUsd, formatUsdAsKhr } from "../../utils/currency";
+import { getProductImageUrl } from "../../utils/mediaUrl";
 
-const getItemImageUrl = (item) => {
-  if (item?.imageUrl) {
-    return item.imageUrl;
-  }
-
-  const label = encodeURIComponent(item?.name || "Item");
-  return `https://placehold.co/160x160?text=${label}`;
-};
+const getItemImageUrl = (item) => getProductImageUrl(item, "160x160");
 
 const SIZE_OPTIONS = ["Small", "Medium", "Large"];
 const SIZE_SHORT_LABELS = {
@@ -373,74 +367,85 @@ function ProductGrid({ onAddItem }) {
         <p>{t("productGrid.noProductsFound")}</p>
       ) : (
         <div className="product-card-grid">
-          {filteredProducts.map((p) => (
-            <div
-              key={p.id}
-              className="product-card"
-              onDoubleClick={(event) => {
-                if (event.target.closest("button")) {
-                  return;
-                }
-                openDetail(p);
-              }}
-              title={t("productGrid.doubleClickForDetail")}
-            >
-              <img
-                className="product-card-image"
-                src={getItemImageUrl(p)}
-                alt={p.name}
-              />
-              <div className="product-card-body">
-                <h4>{p.name}</h4>
-                <div className="size-price-list">
-                  <div>{t("productGrid.sizeS")}: {formatUsdAsKhr(getPriceBySize(p, "Small"), language)}</div>
-                  <div>{t("productGrid.sizeM")}: {formatUsdAsKhr(getPriceBySize(p, "Medium"), language)}</div>
-                  <div>{t("productGrid.sizeL")}: {formatUsdAsKhr(getPriceBySize(p, "Large"), language)}</div>
-                </div>
-                <p className="product-card-hint">{t("productGrid.doubleClickForDetail")}</p>
-                <div className="size-selector">
-                  {SIZE_OPTIONS.map((size) => (
-                    <button
-                      key={`${p.id}-${size}`}
-                      className={`size-btn ${(selectedSizes[p.id] || "Medium") === size ? "active" : ""}`}
-                      type="button"
-                      onClick={() =>
-                        setSelectedSizes((prev) => ({
-                          ...prev,
-                          [p.id]: size,
-                        }))
-                      }
-                    >
-                      {t(SIZE_SHORT_LABELS[size])}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  className="product-detail-trigger btn-with-icon"
-                  type="button"
-                  onClick={() => openDetail(p)}
+          {filteredProducts.map((p) => {
+            const imageUrl = getItemImageUrl(p);
+
+            return (
+              <div
+                key={p.id}
+                className="product-card"
+                onDoubleClick={(event) => {
+                  if (event.target.closest("button")) {
+                    return;
+                  }
+                  openDetail(p);
+                }}
+                title={t("productGrid.doubleClickForDetail")}
+              >
+                <div
+                  className="product-card-media"
+                  style={{ backgroundImage: `url(${JSON.stringify(imageUrl)})` }}
                 >
-                  {t("productGrid.detail")}
-                </button>
-                <button
-                  className="primary-btn btn-with-icon"
-                  type="button"
-                  onClick={() => {
-                    const size = selectedSizes[p.id] || "Medium";
-                    onAddItem({
-                      ...p,
-                      imageUrl: getItemImageUrl(p),
-                      selectedSize: size,
-                      price: getPriceBySize(p, size),
-                    });
-                  }}
-                >
-                  <AppIcon name="plus" />
-                  {t("productGrid.add")}
-                </button>
+                  <img
+                    className="product-card-image"
+                    src={imageUrl}
+                    alt={p.name}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <div className="product-card-body">
+                  <h4>{p.name}</h4>
+                  <div className="size-price-list">
+                    <div>{t("productGrid.sizeS")}: {formatUsdAsKhr(getPriceBySize(p, "Small"), language)}</div>
+                    <div>{t("productGrid.sizeM")}: {formatUsdAsKhr(getPriceBySize(p, "Medium"), language)}</div>
+                    <div>{t("productGrid.sizeL")}: {formatUsdAsKhr(getPriceBySize(p, "Large"), language)}</div>
+                  </div>
+                  <p className="product-card-hint">{t("productGrid.doubleClickForDetail")}</p>
+                  <div className="size-selector">
+                    {SIZE_OPTIONS.map((size) => (
+                      <button
+                        key={`${p.id}-${size}`}
+                        className={`size-btn ${(selectedSizes[p.id] || "Medium") === size ? "active" : ""}`}
+                        type="button"
+                        onClick={() =>
+                          setSelectedSizes((prev) => ({
+                            ...prev,
+                            [p.id]: size,
+                          }))
+                        }
+                      >
+                        {t(SIZE_SHORT_LABELS[size])}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    className="product-detail-trigger btn-with-icon"
+                    type="button"
+                    onClick={() => openDetail(p)}
+                  >
+                    {t("productGrid.detail")}
+                  </button>
+                  <button
+                    className="primary-btn btn-with-icon"
+                    type="button"
+                    onClick={() => {
+                      const size = selectedSizes[p.id] || "Medium";
+                      onAddItem({
+                        ...p,
+                        imageUrl,
+                        selectedSize: size,
+                        price: getPriceBySize(p, size),
+                      });
+                    }}
+                  >
+                    <AppIcon name="plus" />
+                    {t("productGrid.add")}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

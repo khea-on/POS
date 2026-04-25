@@ -8,6 +8,7 @@ import {
   formatUsdAsKhr,
   formatUsdAsKhrInputValue,
 } from "../utils/currency";
+import { getProductImageUrl } from "../utils/mediaUrl";
 
 const DEFAULT_LOW_STOCK_THRESHOLD = 10;
 const REQUIRED_IMPORT_HEADERS = ["name", "sku"];
@@ -635,14 +636,7 @@ function InventoryManagement() {
     return "in-stock";
   };
 
-  const getItemImageUrl = (product) => {
-    if (product?.imageUrl) {
-      return product.imageUrl;
-    }
-
-    const label = encodeURIComponent(product?.name || "Item");
-    return `https://placehold.co/64x64?text=${label}`;
-  };
+  const getItemImageUrl = (product) => getProductImageUrl(product, "64x64");
 
   return (
     <section className="inventory-modern-page">

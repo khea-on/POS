@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import useI18n from "../../i18n/useI18n";
 import AppIcon from "../common/AppIcon";
 import { formatUsdAsKhr } from "../../utils/currency";
+import { getProductImageUrl } from "../../utils/mediaUrl";
 
 function Cart({
   items,
@@ -60,14 +61,7 @@ function Cart({
     return t("common.sizeMedium");
   };
 
-  const getItemImageUrl = (item) => {
-    if (item?.imageUrl) {
-      return item.imageUrl;
-    }
-
-    const label = encodeURIComponent(item?.name || "Item");
-    return `https://placehold.co/80x80?text=${label}`;
-  };
+  const getItemImageUrl = (item) => getProductImageUrl(item, "80x80");
 
   return (
     <div className={`panel cart-panel ${isPanelPopping ? "cart-panel-pop" : ""}`}>

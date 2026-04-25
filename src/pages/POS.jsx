@@ -6,6 +6,7 @@ import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import AppIcon from "../components/common/AppIcon";
 import { convertUsdToKhr, formatUsdAsKhr } from "../utils/currency";
+import { getProductImageUrl } from "../utils/mediaUrl";
 
 const POS_CART_STORAGE_KEY = "pos.cart.items.v1";
 
@@ -295,11 +296,7 @@ function POS() {
           orderId: order.id,
           productName: item.product?.name || `Product #${item.productId}`,
           size: item.size || "Medium",
-          imageUrl:
-            item.product?.imageUrl ||
-            `https://placehold.co/80x80?text=${encodeURIComponent(
-              item.product?.name || "Item"
-            )}`,
+          imageUrl: getProductImageUrl(item.product, "80x80"),
           quantity: item.quantity,
           lineTotal: Number(item.lineTotal || 0),
         }))
