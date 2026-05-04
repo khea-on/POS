@@ -396,7 +396,7 @@ function Settings() {
   };
 
   return (
-    <div className="page-card">
+    <section className="settings-screen">
       {showEditUserModal ? (
         <div
           className="inventory-modal-backdrop"
@@ -404,7 +404,7 @@ function Settings() {
           onClick={closeEditUserModal}
         >
           <div
-            className="inventory-modal-card"
+            className="inventory-modal-card settings-edit-modal-card"
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-user-modal-title"
@@ -426,7 +426,7 @@ function Settings() {
               </button>
             </div>
 
-            <form className="inventory-modal-form" onSubmit={handleSubmitUserUpdate}>
+            <form className="inventory-modal-form settings-edit-form" onSubmit={handleSubmitUserUpdate}>
               <label className="inventory-modal-field">
                 <span className="inventory-modal-label">{t("settings.username")}</span>
                 <input
@@ -555,16 +555,16 @@ function Settings() {
         </div>
       ) : null}
 
-      <h2>{t("settings.title")}</h2>
+      <h2 className="settings-screen-title">{t("settings.title")}</h2>
 
       <div className="settings-grid">
-        <div className="page-card settings-card">
+        <div className="page-card settings-card settings-summary-card">
           <h3>{t("settings.companyName")}</h3>
           <p className="dashboard-value">StarDark POS</p>
           <p className="muted-text">{t("settings.systemEnvironment")}</p>
         </div>
 
-        <div className="page-card settings-card">
+        <div className="page-card settings-card settings-summary-card">
           <h3>{t("settings.taxConfiguration")}</h3>
           <p className="dashboard-value">{stats.todayTaxRate.toFixed(2)}%</p>
           <p className="muted-text">
@@ -572,7 +572,7 @@ function Settings() {
           </p>
         </div>
 
-        <div className="page-card settings-card">
+        <div className="page-card settings-card settings-summary-card">
           <h3>{t("settings.userManagement")}</h3>
           {typeof profile?.usersCount === "number" ? (
             <>
@@ -592,7 +592,7 @@ function Settings() {
           )}
         </div>
 
-        <div className="page-card settings-card">
+        <div className="page-card settings-card settings-summary-card">
           <h3>{t("settings.inventorySummary")}</h3>
           <p className="dashboard-value">{stats.totalProducts}</p>
           <p className="muted-text">
@@ -603,7 +603,7 @@ function Settings() {
           </p>
         </div>
 
-        <div className="page-card settings-card">
+        <div className="page-card settings-card settings-summary-card">
           <h3>{t("settings.security")}</h3>
           <p className="dashboard-value">{t("settings.enabled")}</p>
           <p className="muted-text">{t("settings.securityDescription")}</p>
@@ -611,7 +611,7 @@ function Settings() {
       </div>
 
       <div className="settings-user-management">
-        <div className="inventory-modern-toolbar">
+        <div className="inventory-modern-toolbar settings-user-toolbar">
           <div className="inventory-modern-title">
             <h2>{t("settings.userListTitle")}</h2>
             <p>{t("settings.userListSubtitle")}</p>
@@ -708,7 +708,7 @@ function Settings() {
                           <div className="inventory-product-sku">Apps: {describeEnabledApps(user)}</div>
                         </div>
                       </div>
-                      <div>
+                      <div className="settings-user-role-cell" data-label={t("settings.columnRole")}>
                         <span className={`settings-role-pill ${roleClassName}`}>
                           {normalizedRole === "Admin"
                             ? t("settings.roleAdmin")
@@ -718,8 +718,10 @@ function Settings() {
                           CRM: {user.isCrmEnabled ? normalizeCrmRole(user.crmRole) : "-"}
                         </div>
                       </div>
-                      <div className="inventory-row-text">{formatCreatedDate(user.createdAt)}</div>
-                      <div className="inventory-actions">
+                      <div className="inventory-row-text settings-user-created-cell" data-label={t("settings.columnCreated")}>
+                        {formatCreatedDate(user.createdAt)}
+                      </div>
+                      <div className="inventory-actions settings-user-actions">
                         <button
                           type="button"
                           className="inventory-action-btn inventory-edit-action-btn"
@@ -751,7 +753,7 @@ function Settings() {
       </div>
 
       {isAdmin ? (
-        <div className="settings-image-section">
+        <div className="settings-image-section settings-form-section">
           <h3>{t("settings.telegramTitle")}</h3>
           <p className="muted-text">{t("settings.telegramDescription")}</p>
           <input
@@ -774,7 +776,7 @@ function Settings() {
         </div>
       ) : null}
 
-      <div className="settings-image-section">
+      <div className="settings-image-section settings-form-section">
         <h3>{t("settings.userImage")}</h3>
         <input
           placeholder="https://example.com/avatar.jpg"
@@ -794,7 +796,7 @@ function Settings() {
         {settingsError ? <p className="form-error">{settingsError}</p> : null}
         {dataLoading ? <p className="muted-text">{t("settings.loadingSettingsData")}</p> : null}
       </div>
-    </div>
+    </section>
   );
 }
 

@@ -225,6 +225,27 @@ function InventoryManagement() {
     return filtered.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
   }, [products, search, stockFilter, lowStockThreshold]);
 
+  const inventoryStats = useMemo(() => {
+    const statusCounts = products.reduce(
+      (counts, product) => {
+        const status = getStockStatus(product.stockQuantity, lowStockThreshold);
+        return {
+          ...counts,
+          [status]: counts[status] + 1,
+        };
+      },
+      { in: 0, low: 0, out: 0 }
+    );
+
+    return {
+      total: products.length,
+      active: products.filter((product) => product.isActive).length,
+      inStock: statusCounts.in,
+      lowStock: statusCounts.low,
+      outOfStock: statusCounts.out,
+    };
+  }, [products, lowStockThreshold]);
+
   const closeAddProductModal = useCallback(() => {
     if (creatingProduct) {
       return;
@@ -912,7 +933,52 @@ function InventoryManagement() {
         </div>
       </div>
 
-      <p className="muted-text">{t("inventoryManagement.importColumnsHint")}</p>
+      <div className="inventory-summary-grid inventory-modern-summary-grid">
+        <div className="page-card inventory-summary-card inventory-stat-card">
+          <div className="card-icon inventory-stat-icon" aria-hidden="true">
+            <AppIcon name="items-screen" />
+          </div>
+          <h3>{t("inventoryManagement.totalProducts")}</h3>
+          <p className="dashboard-value">{inventoryStats.total}</p>
+          <p className="muted-text">
+            {t("settings.activeLowStock", {
+              active: inventoryStats.active,
+              lowStock: inventoryStats.lowStock,
+            })}
+          </p>
+        </div>
+
+        <div className="page-card inventory-summary-card inventory-stat-card">
+          <div className="card-icon inventory-stat-icon" aria-hidden="true">
+            <AppIcon name="stock" />
+          </div>
+          <h3>{t("inventoryManagement.inStockProducts")}</h3>
+          <p className="dashboard-value">{inventoryStats.inStock}</p>
+          <p className="muted-text">{t("inventoryManagement.inStock")}</p>
+        </div>
+
+        <div className="page-card inventory-summary-card inventory-stat-card">
+          <div className="card-icon inventory-stat-icon" aria-hidden="true">
+            <AppIcon name="audit" />
+          </div>
+          <h3>{t("inventoryManagement.lowStockProducts")}</h3>
+          <p className="dashboard-value">{inventoryStats.lowStock}</p>
+          <p className="muted-text">
+            {t("inventoryManagement.lowStockListTitle", { threshold: lowStockThreshold })}
+          </p>
+        </div>
+
+        <div className="page-card inventory-summary-card inventory-stat-card">
+          <div className="card-icon inventory-stat-icon" aria-hidden="true">
+            <AppIcon name="cancel" />
+          </div>
+          <h3>{t("inventoryManagement.outOfStockProducts")}</h3>
+          <p className="dashboard-value">{inventoryStats.outOfStock}</p>
+          <p className="muted-text">{t("inventoryManagement.outOfStock")}</p>
+        </div>
+      </div>
+
+      <p className="muted-text inventory-import-hint">{t("inventoryManagement.importColumnsHint")}</p>
 
       {message ? <p className="success-text">{message}</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
@@ -945,12 +1011,16 @@ function InventoryManagement() {
                       <div className="inventory-product-sku">{product.sku}</div>
                     </div>
                   </div>
-                  <div className="inventory-row-text">{getCategory(product)}</div>
-                  <div className="inventory-row-text">
+                  <div className="inventory-row-text" data-label={t("inventoryManagement.columnCategory")}>
+                    {getCategory(product)}
+                  </div>
+                  <div className="inventory-row-text" data-label={t("inventoryManagement.columnPrice")}>
                     {formatUsdAsKhr(Number(product.mediumPrice ?? product.price ?? 0), language)}
                   </div>
-                  <div className="inventory-row-text">{stock}</div>
-                  <div>
+                  <div className="inventory-row-text" data-label={t("inventoryManagement.columnStock")}>
+                    {stock}
+                  </div>
+                  <div className="inventory-status-cell" data-label={t("inventoryManagement.columnStatus")}>
                     <span className={`inventory-status-pill ${getStatusClassName(stock)}`}>
                       {getStatusLabel(stock)}
                     </span>

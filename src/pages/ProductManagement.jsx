@@ -7,6 +7,7 @@ import {
   formatUsdAsKhr,
   formatUsdAsKhrInputValue,
 } from "../utils/currency";
+import { getProductImageUrl } from "../utils/mediaUrl";
 
 const defaultProductForm = {
   name: "",
@@ -37,6 +38,7 @@ function ProductManagement() {
   const [error, setError] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const imageFileInputRef = useRef(null);
 
   const loadProducts = useCallback(async () => {
@@ -56,11 +58,44 @@ function ProductManagement() {
     loadProducts();
   }, [loadProducts]);
 
-  const resetProductForm = () => {
+  const resetProductForm = useCallback(() => {
     setProductForm(defaultProductForm);
     setEditingProductId(null);
     setSelectedImageFile(null);
+  }, []);
+
+  const openCreateProductModal = () => {
+    setError("");
+    setMessage("");
+    resetProductForm();
+    setIsProductModalOpen(true);
   };
+
+  const closeProductModal = useCallback(() => {
+    if (loading || uploadingImage) {
+      return;
+    }
+
+    setIsProductModalOpen(false);
+    resetProductForm();
+  }, [loading, resetProductForm, uploadingImage]);
+
+  useEffect(() => {
+    if (!isProductModalOpen) {
+      return undefined;
+    }
+
+    const handleEscClose = (event) => {
+      if (event.key === "Escape") {
+        closeProductModal();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscClose);
+    return () => {
+      window.removeEventListener("keydown", handleEscClose);
+    };
+  }, [closeProductModal, isProductModalOpen]);
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -117,6 +152,18 @@ function ProductManagement() {
     return result;
   }, [products, search, activeFilter, stockFilter, minPrice, maxPrice, sort]);
 
+  const productStats = useMemo(() => {
+    const activeProducts = products.filter((product) => product.isActive).length;
+    const outOfStockProducts = products.filter((product) => Number(product.stockQuantity || 0) <= 0).length;
+
+    return {
+      total: products.length,
+      active: activeProducts,
+      outOfStock: outOfStockProducts,
+      matched: filteredProducts.length,
+    };
+  }, [filteredProducts.length, products]);
+
   const handleSubmitProduct = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -155,6 +202,7 @@ function ProductManagement() {
         await gateway.products.uploadImage(targetProductId, selectedImageFile);
       }
 
+      setIsProductModalOpen(false);
       resetProductForm();
       await loadProducts();
     } catch (err) {
@@ -174,6 +222,7 @@ function ProductManagement() {
     setMessage("");
     setSelectedImageFile(null);
     setEditingProductId(product.id);
+    setIsProductModalOpen(true);
     setProductForm({
       name: product.name || "",
       sku: product.sku || "",
@@ -189,6 +238,7 @@ function ProductManagement() {
   const handleCancelEdit = () => {
     setError("");
     setMessage("");
+    setIsProductModalOpen(false);
     resetProductForm();
   };
 
@@ -255,233 +305,380 @@ function ProductManagement() {
   };
 
   return (
-    <div className="page-card">
-      <h2>{t("productManagement.title")}</h2>
-      <div className="settings-image-section">
-        <div className="filter-toolbar">
-          <input
-            className="filter-input"
-            placeholder={t("productManagement.searchProductOrSku")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
-            <option value="all">{t("productManagement.allStatus")}</option>
-            <option value="active">{t("productManagement.active")}</option>
-            <option value="inactive">{t("productManagement.inactive")}</option>
-          </select>
-          <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
-            <option value="all">{t("productManagement.allStock")}</option>
-            <option value="inStock">{t("productManagement.inStockOnly")}</option>
-          </select>
-          <select value={sort} onChange={(e) => setSort(e.target.value)}>
-            <option value="name_asc">{t("productManagement.nameAz")}</option>
-            <option value="name_desc">{t("productManagement.nameZa")}</option>
-            <option value="price_asc">{t("productManagement.priceLowHigh")}</option>
-            <option value="price_desc">{t("productManagement.priceHighLow")}</option>
-            <option value="stock_desc">{t("productManagement.stockHighLow")}</option>
-            <option value="stock_asc">{t("productManagement.stockLowHigh")}</option>
-            <option value="newest">{t("productManagement.newest")}</option>
-          </select>
-          <input
-            className="filter-input filter-mini"
-            type="number"
-            step="1"
-            placeholder={t("productManagement.minPrice")}
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-          />
-          <input
-            className="filter-input filter-mini"
-            type="number"
-            step="1"
-            placeholder={t("productManagement.maxPrice")}
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-          />
-        </div>
-
-        <h3>{editingProductId ? t("productManagement.editProduct") : t("productManagement.addProduct")}</h3>
-        <form className="product-form" onSubmit={handleSubmitProduct}>
-          <input
-            placeholder={t("productManagement.name")}
-            value={productForm.name}
-            onChange={(e) => setProductForm((prev) => ({ ...prev, name: e.target.value }))}
-            required
-          />
-          <input
-            placeholder={t("productManagement.sku")}
-            value={productForm.sku}
-            onChange={(e) => setProductForm((prev) => ({ ...prev, sku: e.target.value }))}
-            required
-          />
-          <div className="image-url-input-group">
-            <input
-              placeholder={t("productManagement.imageUrl")}
-              value={productForm.imageUrl}
-              onChange={(e) => setProductForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
-            />
-            <button
-              className="screen-btn btn-with-icon"
-              type="button"
-              onClick={() => imageFileInputRef.current?.click()}
-              disabled={loading || uploadingImage}
-            >
-              <AppIcon name="plus" />
-              {uploadingImage
-                ? t("productManagement.uploadingImage")
-                : t("productManagement.uploadImage")}
-            </button>
-            <button
-              className="cancel-btn btn-with-icon"
-              type="button"
-              onClick={() => {
-                setSelectedImageFile(null);
-                setProductForm((prev) => ({ ...prev, imageUrl: "" }));
-              }}
-              disabled={loading || uploadingImage || (!productForm.imageUrl.trim() && !selectedImageFile)}
-            >
-              <AppIcon name="cancel" />
-              {t("productManagement.clearImage")}
-            </button>
-            <input
-              ref={imageFileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handlePickProductImage}
-              style={{ display: "none" }}
-            />
-          </div>
-          {selectedImageFile ? (
-            <p className="muted-text">{selectedImageFile.name}</p>
-          ) : null}
-          <input
-            type="number"
-            step="1"
-            placeholder={t("productManagement.smallPrice")}
-            value={productForm.smallPrice}
-            onChange={(e) => setProductForm((prev) => ({ ...prev, smallPrice: e.target.value }))}
-            required
-          />
-          <input
-            type="number"
-            step="1"
-            placeholder={t("productManagement.mediumPrice")}
-            value={productForm.mediumPrice}
-            onChange={(e) => setProductForm((prev) => ({ ...prev, mediumPrice: e.target.value }))}
-            required
-          />
-          <input
-            type="number"
-            step="1"
-            placeholder={t("productManagement.largePrice")}
-            value={productForm.largePrice}
-            onChange={(e) => setProductForm((prev) => ({ ...prev, largePrice: e.target.value }))}
-            required
-          />
-          <input
-            type="number"
-            placeholder={t("productManagement.stock")}
-            value={productForm.stockQuantity}
-            onChange={(e) => setProductForm((prev) => ({ ...prev, stockQuantity: e.target.value }))}
-            required
-          />
-          <label className="muted-text">
-            <input
-              type="checkbox"
-              checked={productForm.isActive}
-              onChange={(e) => setProductForm((prev) => ({ ...prev, isActive: e.target.checked }))}
-            />{" "}
-            {t("productManagement.activeLabel")}
-          </label>
-          <div className="product-form-actions">
-            <button className="primary-btn btn-with-icon" type="submit" disabled={loading}>
-              <AppIcon name={editingProductId ? "save" : "plus"} />
-              {loading
-                ? t("productManagement.saving")
-                : editingProductId
-                  ? t("productManagement.updateProduct")
-                  : t("productManagement.addProduct")}
-            </button>
-            {editingProductId ? (
-              <button
-                className="screen-btn btn-with-icon"
-                type="button"
-                onClick={handleCancelEdit}
-                disabled={loading}
-              >
-                <AppIcon name="cancel" />
-                {t("productManagement.cancelEdit")}
-              </button>
-            ) : null}
-          </div>
-        </form>
-
-        {message ? <p className="success-text">{message}</p> : null}
-        {error ? <p className="form-error">{error}</p> : null}
-        {dataLoading ? <p className="muted-text">{t("productManagement.loadingProducts")}</p> : null}
-
-        <div className="product-admin-list">
-          {filteredProducts.map((product) => (
-            <div className="list-row product-admin-row" key={product.id}>
+    <section className="product-management-page">
+      {isProductModalOpen ? (
+        <div
+          className="inventory-modal-backdrop"
+          role="presentation"
+          onClick={closeProductModal}
+        >
+          <div
+            className="inventory-modal-card product-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="product-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="inventory-modal-header">
               <div>
-                <div>
-                  {product.name} ({product.sku})
-                </div>
-                <div className="muted-text">
-                  S {formatUsdAsKhr(Number(product.smallPrice ?? product.price), language)} | M{" "}
-                  {formatUsdAsKhr(Number(product.mediumPrice ?? product.price), language)} | L{" "}
-                  {formatUsdAsKhr(Number(product.largePrice ?? product.price), language)} | {t("productManagement.stockLabel")}{" "}
-                  {Number(product.stockQuantity || 0)}
-                </div>
+                <h3 id="product-modal-title">
+                  {editingProductId ? t("productManagement.editProduct") : t("productManagement.addProduct")}
+                </h3>
+                <p className="muted-text">{t("productManagement.subtitle")}</p>
               </div>
-              <div className="product-admin-actions">
+              <button
+                type="button"
+                className="screen-btn btn-with-icon"
+                onClick={closeProductModal}
+                disabled={loading || uploadingImage}
+              >
+                <AppIcon name="close" />
+                {t("common.close")}
+              </button>
+            </div>
+
+            <form className="inventory-modal-form product-modal-form" onSubmit={handleSubmitProduct}>
+              <label className="inventory-modal-field">
+                <span className="inventory-modal-label">{t("productManagement.name")}</span>
                 <input
-                  className="filter-input filter-mini stock-adjust-input"
-                  type="number"
-                  min="1"
-                  placeholder={t("productManagement.stockQuantityToAdd")}
-                  value={stockAdjustments[product.id] || ""}
-                  onChange={(e) =>
-                    setStockAdjustments((prev) => ({
-                      ...prev,
-                      [product.id]: e.target.value,
-                    }))
-                  }
+                  className="inventory-modal-input"
+                  value={productForm.name}
+                  onChange={(e) => setProductForm((prev) => ({ ...prev, name: e.target.value }))}
+                  required
+                  autoFocus
                 />
-                <button
-                  className="primary-btn btn-with-icon"
-                  type="button"
-                  disabled={loading}
-                  onClick={() => handleAddStock(product.id)}
-                >
-                  <AppIcon name="stock" />
-                  {t("productManagement.addStock")}
+              </label>
+
+              <label className="inventory-modal-field">
+                <span className="inventory-modal-label">{t("productManagement.sku")}</span>
+                <input
+                  className="inventory-modal-input"
+                  value={productForm.sku}
+                  onChange={(e) => setProductForm((prev) => ({ ...prev, sku: e.target.value }))}
+                  required
+                />
+              </label>
+
+              <label className="inventory-modal-field inventory-modal-field-wide">
+                <span className="inventory-modal-label">{t("productManagement.imageUrl")}</span>
+                <div className="inventory-image-url-input-group">
+                  <input
+                    className="inventory-modal-input"
+                    value={productForm.imageUrl}
+                    onChange={(e) => setProductForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
+                  />
+                  <button
+                    className="screen-btn btn-with-icon"
+                    type="button"
+                    onClick={() => imageFileInputRef.current?.click()}
+                    disabled={loading || uploadingImage}
+                  >
+                    <AppIcon name="plus" />
+                    {uploadingImage
+                      ? t("productManagement.uploadingImage")
+                      : t("productManagement.uploadImage")}
+                  </button>
+                  <button
+                    className="cancel-btn btn-with-icon"
+                    type="button"
+                    onClick={() => {
+                      setSelectedImageFile(null);
+                      setProductForm((prev) => ({ ...prev, imageUrl: "" }));
+                    }}
+                    disabled={loading || uploadingImage || (!productForm.imageUrl.trim() && !selectedImageFile)}
+                  >
+                    <AppIcon name="cancel" />
+                    {t("productManagement.clearImage")}
+                  </button>
+                  <input
+                    ref={imageFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePickProductImage}
+                    style={{ display: "none" }}
+                  />
+                </div>
+                {selectedImageFile ? (
+                  <p className="muted-text">{selectedImageFile.name}</p>
+                ) : null}
+              </label>
+
+              <label className="inventory-modal-field">
+                <span className="inventory-modal-label">{t("productManagement.smallPrice")}</span>
+                <input
+                  className="inventory-modal-input"
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={productForm.smallPrice}
+                  onChange={(e) => setProductForm((prev) => ({ ...prev, smallPrice: e.target.value }))}
+                  required
+                />
+              </label>
+
+              <label className="inventory-modal-field">
+                <span className="inventory-modal-label">{t("productManagement.mediumPrice")}</span>
+                <input
+                  className="inventory-modal-input"
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={productForm.mediumPrice}
+                  onChange={(e) => setProductForm((prev) => ({ ...prev, mediumPrice: e.target.value }))}
+                  required
+                />
+              </label>
+
+              <label className="inventory-modal-field">
+                <span className="inventory-modal-label">{t("productManagement.largePrice")}</span>
+                <input
+                  className="inventory-modal-input"
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={productForm.largePrice}
+                  onChange={(e) => setProductForm((prev) => ({ ...prev, largePrice: e.target.value }))}
+                  required
+                />
+              </label>
+
+              <label className="inventory-modal-field">
+                <span className="inventory-modal-label">{t("productManagement.stock")}</span>
+                <input
+                  className="inventory-modal-input"
+                  type="number"
+                  min="0"
+                  value={productForm.stockQuantity}
+                  onChange={(e) => setProductForm((prev) => ({ ...prev, stockQuantity: e.target.value }))}
+                  required
+                />
+              </label>
+
+              <label className="muted-text inventory-modal-checkbox inventory-modal-field-wide">
+                <input
+                  type="checkbox"
+                  checked={productForm.isActive}
+                  onChange={(e) => setProductForm((prev) => ({ ...prev, isActive: e.target.checked }))}
+                />
+                {t("productManagement.activeLabel")}
+              </label>
+
+              <div className="product-form-actions inventory-modal-actions">
+                <button className="primary-btn btn-with-icon" type="submit" disabled={loading}>
+                  <AppIcon name={editingProductId ? "save" : "plus"} />
+                  {loading
+                    ? t("productManagement.saving")
+                    : editingProductId
+                      ? t("productManagement.updateProduct")
+                      : t("productManagement.addProduct")}
                 </button>
                 <button
                   className="screen-btn btn-with-icon"
                   type="button"
+                  onClick={handleCancelEdit}
                   disabled={loading}
-                  onClick={() => handleStartEdit(product)}
                 >
-                  <AppIcon name="edit" />
-                  {t("productManagement.edit")}
-                </button>
-                <button
-                  className="cancel-btn btn-with-icon"
-                  type="button"
-                  disabled={loading}
-                  onClick={() => handleDeleteProduct(product.id)}
-                >
-                  <AppIcon name="delete" />
-                  {t("common.delete")}
+                  <AppIcon name="cancel" />
+                  {editingProductId ? t("productManagement.cancelEdit") : t("common.cancel")}
                 </button>
               </div>
-            </div>
-          ))}
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="inventory-modern-toolbar product-management-toolbar">
+        <div className="inventory-modern-title product-management-title">
+          <h2>{t("productManagement.title")}</h2>
+          <p>{t("productManagement.subtitle")}</p>
+        </div>
+        <button
+          className="inventory-add-btn product-management-add-btn"
+          type="button"
+          onClick={openCreateProductModal}
+        >
+          <AppIcon name="plus" />
+          {t("productManagement.addProduct")}
+        </button>
+      </div>
+
+      <div className="product-management-summary-grid">
+        <div className="product-management-stat">
+          <span>{t("productManagement.totalProducts")}</span>
+          <strong>{productStats.total}</strong>
+        </div>
+        <div className="product-management-stat">
+          <span>{t("productManagement.activeProducts")}</span>
+          <strong>{productStats.active}</strong>
+        </div>
+        <div className="product-management-stat">
+          <span>{t("productManagement.matchedProducts")}</span>
+          <strong>{productStats.matched}</strong>
+        </div>
+        <div className="product-management-stat">
+          <span>{t("productManagement.outOfStockProducts")}</span>
+          <strong>{productStats.outOfStock}</strong>
         </div>
       </div>
-    </div>
+
+      <div className="product-management-filter-panel">
+        <label className="inventory-search product-management-search" aria-label={t("productManagement.searchProductOrSku")}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            placeholder={t("productManagement.searchProductOrSku")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
+        <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
+          <option value="all">{t("productManagement.allStatus")}</option>
+          <option value="active">{t("productManagement.active")}</option>
+          <option value="inactive">{t("productManagement.inactive")}</option>
+        </select>
+        <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
+          <option value="all">{t("productManagement.allStock")}</option>
+          <option value="inStock">{t("productManagement.inStockOnly")}</option>
+        </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value)}>
+          <option value="name_asc">{t("productManagement.nameAz")}</option>
+          <option value="name_desc">{t("productManagement.nameZa")}</option>
+          <option value="price_asc">{t("productManagement.priceLowHigh")}</option>
+          <option value="price_desc">{t("productManagement.priceHighLow")}</option>
+          <option value="stock_desc">{t("productManagement.stockHighLow")}</option>
+          <option value="stock_asc">{t("productManagement.stockLowHigh")}</option>
+          <option value="newest">{t("productManagement.newest")}</option>
+        </select>
+        <input
+          className="product-management-filter-input"
+          type="number"
+          step="1"
+          placeholder={t("productManagement.minPrice")}
+          value={minPrice}
+          onChange={(e) => setMinPrice(e.target.value)}
+        />
+        <input
+          className="product-management-filter-input"
+          type="number"
+          step="1"
+          placeholder={t("productManagement.maxPrice")}
+          value={maxPrice}
+          onChange={(e) => setMaxPrice(e.target.value)}
+        />
+      </div>
+
+      {message ? <p className="success-text">{message}</p> : null}
+      {error ? <p className="form-error">{error}</p> : null}
+      {dataLoading ? <p className="muted-text">{t("productManagement.loadingProducts")}</p> : null}
+
+      {!dataLoading && filteredProducts.length === 0 ? (
+        <div className="product-management-empty-state">
+          <AppIcon name="stock" />
+          <strong>{t("productManagement.noProductsMatched")}</strong>
+        </div>
+      ) : (
+        <div className="product-management-list">
+          {filteredProducts.map((product) => {
+            const stock = Number(product.stockQuantity || 0);
+            const isActive = Boolean(product.isActive);
+            const statusLabel = isActive ? t("productManagement.active") : t("productManagement.inactive");
+
+            return (
+              <article className="product-management-card" key={product.id}>
+                <div className="product-management-card-main">
+                  <img
+                    className="product-management-image"
+                    src={getProductImageUrl(product, "96x96")}
+                    alt={product.name || product.sku || t("productManagement.title")}
+                  />
+                  <div className="product-management-copy">
+                    <div className="product-management-card-head">
+                      <div>
+                        <h3>{product.name}</h3>
+                        <span>{product.sku}</span>
+                      </div>
+                      <span className={`product-management-status-pill ${isActive ? "active" : "inactive"}`}>
+                        {statusLabel}
+                      </span>
+                    </div>
+
+                    <div className="product-management-price-grid">
+                      <div>
+                        <span>S</span>
+                        <strong>{formatUsdAsKhr(Number(product.smallPrice ?? product.price ?? 0), language)}</strong>
+                      </div>
+                      <div>
+                        <span>M</span>
+                        <strong>{formatUsdAsKhr(Number(product.mediumPrice ?? product.price ?? 0), language)}</strong>
+                      </div>
+                      <div>
+                        <span>L</span>
+                        <strong>{formatUsdAsKhr(Number(product.largePrice ?? product.price ?? 0), language)}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="product-management-stock-row">
+                  <span>{t("productManagement.stockLabel")}</span>
+                  <strong>{stock}</strong>
+                </div>
+
+                <div className="product-management-card-actions">
+                  <div className="product-management-stock-adjust">
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder={t("productManagement.stockQuantityToAdd")}
+                      value={stockAdjustments[product.id] || ""}
+                      onChange={(e) =>
+                        setStockAdjustments((prev) => ({
+                          ...prev,
+                          [product.id]: e.target.value,
+                        }))
+                      }
+                    />
+                    <button
+                      className="primary-btn btn-with-icon"
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleAddStock(product.id)}
+                    >
+                      <AppIcon name="stock" />
+                      {t("productManagement.addStock")}
+                    </button>
+                  </div>
+                  <div className="product-management-action-buttons">
+                    <button
+                      className="screen-btn product-management-icon-btn"
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleStartEdit(product)}
+                      aria-label={t("productManagement.edit")}
+                      title={t("productManagement.edit")}
+                    >
+                      <AppIcon name="edit" />
+                    </button>
+                    <button
+                      className="cancel-btn product-management-icon-btn"
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleDeleteProduct(product.id)}
+                      aria-label={t("common.delete")}
+                      title={t("common.delete")}
+                    >
+                      <AppIcon name="delete" />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 

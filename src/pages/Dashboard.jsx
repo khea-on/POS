@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import gateway from "../services/gateway";
 import useI18n from "../i18n/useI18n";
 import { formatUsdAsKhr } from "../utils/currency";
+import AppIcon from "../components/common/AppIcon";
 
 const LINE_CHART_WIDTH = 700;
 const LINE_CHART_HEIGHT = 220;
@@ -245,30 +246,38 @@ function Dashboard() {
   }, [orders, t]);
 
   return (
-    <div className="dashboard-grid">
-      <div className="page-card dashboard-card">
-        <div className="card-icon" aria-hidden="true">💰</div>
+    <section className="dashboard-grid dashboard-screen">
+      <div className="page-card dashboard-card dashboard-stat-card">
+        <div className="card-icon dashboard-stat-icon" aria-hidden="true">
+          <AppIcon name="checkout" />
+        </div>
         <h2>{t("dashboard.salesToday")}</h2>
         <p className="dashboard-value">{formatUsdAsKhr(stats.salesToday, language)}</p>
         <p className="muted-text">{t("dashboard.ordersToday", { count: stats.ordersToday })}</p>
       </div>
 
-      <div className="page-card dashboard-card">
-        <div className="card-icon" aria-hidden="true">📈</div>
+      <div className="page-card dashboard-card dashboard-stat-card">
+        <div className="card-icon dashboard-stat-icon" aria-hidden="true">
+          <AppIcon name="reports" />
+        </div>
         <h2>{t("dashboard.totalSales")}</h2>
         <p className="dashboard-value">{formatUsdAsKhr(stats.totalSales, language)}</p>
         <p className="muted-text">{t("dashboard.allTimeCompletedSales")}</p>
       </div>
 
-      <div className="page-card dashboard-card">
-        <div className="card-icon" aria-hidden="true">🧾</div>
+      <div className="page-card dashboard-card dashboard-stat-card">
+        <div className="card-icon dashboard-stat-icon" aria-hidden="true">
+          <AppIcon name="invoice-screen" />
+        </div>
         <h2>{t("dashboard.totalOrders")}</h2>
         <p className="dashboard-value">{stats.totalOrders}</p>
         <p className="muted-text">{t("dashboard.allOrdersFromApi")}</p>
       </div>
 
-      <div className="page-card dashboard-card">
-        <div className="card-icon" aria-hidden="true">📦</div>
+      <div className="page-card dashboard-card dashboard-stat-card">
+        <div className="card-icon dashboard-stat-icon" aria-hidden="true">
+          <AppIcon name="stock" />
+        </div>
         <h2>{t("dashboard.products")}</h2>
         <p className="dashboard-value">{stats.totalProducts}</p>
         <p className="muted-text">
@@ -402,7 +411,7 @@ function Dashboard() {
           {error ? <p className="form-error">{error}</p> : null}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 

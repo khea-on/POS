@@ -46,6 +46,20 @@ const describeApps = (user) => {
   return apps.length > 0 ? apps.join(", ") : "No access";
 };
 
+const getEnabledApps = (user) => {
+  const apps = [];
+  if (user?.isPosEnabled) {
+    apps.push("POS");
+  }
+  if (user?.isCrmEnabled) {
+    apps.push("CRM");
+  }
+  return apps;
+};
+
+const getUserInitial = (username) =>
+  String(username || "U").trim().slice(0, 1).toUpperCase() || "U";
+
 const toggleValue = (values, value) =>
   values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 
@@ -241,11 +255,11 @@ function AccessControl() {
   };
 
   return (
-    <div className="page-card">
+    <section className="access-control-page">
       {selectedUser ? (
         <div className="inventory-modal-backdrop" role="presentation" onClick={closeEditor}>
           <div
-            className="inventory-modal-card"
+            className="inventory-modal-card access-control-modal-card"
             role="dialog"
             aria-modal="true"
             aria-labelledby="access-control-title"
@@ -267,7 +281,7 @@ function AccessControl() {
               </button>
             </div>
 
-            <form className="inventory-modal-form" onSubmit={handleSubmit}>
+            <form className="inventory-modal-form access-control-form" onSubmit={handleSubmit}>
               <label className="inventory-modal-field">
                 <span className="inventory-modal-label">Username</span>
                 <input
@@ -377,7 +391,7 @@ function AccessControl() {
                 </label>
               </div>
 
-              <div className="inventory-modal-field">
+              <div className="inventory-modal-field access-module-section">
                 <span className="inventory-modal-label">POS Modules</span>
                 <div className="module-checkbox-grid">
                   {POS_MODULES.map((module) => (
@@ -399,7 +413,7 @@ function AccessControl() {
                 </div>
               </div>
 
-              <div className="inventory-modal-field">
+              <div className="inventory-modal-field access-module-section">
                 <span className="inventory-modal-label">CRM Modules</span>
                 <div className="module-checkbox-grid">
                   {CRM_MODULES.map((module) => (
@@ -462,19 +476,19 @@ function AccessControl() {
       </div>
 
       <div className="settings-grid access-summary-grid">
-        <div className="page-card settings-card">
+        <div className="page-card settings-card access-summary-card">
           <h3>Total Users</h3>
           <p className="dashboard-value">{summary.total}</p>
         </div>
-        <div className="page-card settings-card">
+        <div className="page-card settings-card access-summary-card">
           <h3>POS Only</h3>
           <p className="dashboard-value">{summary.posOnly}</p>
         </div>
-        <div className="page-card settings-card">
+        <div className="page-card settings-card access-summary-card">
           <h3>CRM Only</h3>
           <p className="dashboard-value">{summary.crmOnly}</p>
         </div>
-        <div className="page-card settings-card">
+        <div className="page-card settings-card access-summary-card">
           <h3>POS + CRM</h3>
           <p className="dashboard-value">{summary.both}</p>
         </div>
@@ -500,38 +514,70 @@ function AccessControl() {
           <div className="inventory-table-body">
             {filteredUsers.map((user) => {
               const isCurrentUser = String(user.username || "").toLowerCase() === currentUsername;
+              const enabledApps = getEnabledApps(user);
+              const posModuleCount = Array.isArray(user.posModules) ? user.posModules.length : 0;
+              const crmModuleCount = Array.isArray(user.crmModules) ? user.crmModules.length : 0;
 
               return (
                 <div className="inventory-table-row access-control-table-row" key={user.id}>
                   <div className="settings-user-cell">
-                    <img src={`https://placehold.co/64x64?text=${encodeURIComponent(String(user.username || "U").slice(0, 1).toUpperCase())}`} alt={user.username} />
+                    <div className="access-user-avatar" aria-hidden="true">
+                      {getUserInitial(user.username)}
+                    </div>
                     <div>
                       <div className="inventory-product-name">{user.username}</div>
                       <div className="inventory-product-sku">Default app: {user.defaultApp || "-"}</div>
                     </div>
                   </div>
 
-                  <div className="inventory-row-text">{describeApps(user)}</div>
-
-                  <div className="inventory-row-text">
-                    <div>POS: {user.isPosEnabled ? normalizeRole(user.posRole || user.role) : "-"}</div>
-                    <div>CRM: {user.isCrmEnabled ? normalizeCrmRole(user.crmRole) : "-"}</div>
+                  <div className="inventory-row-text access-app-cell" data-label="Applications">
+                    {enabledApps.length > 0 ? (
+                      <div className="access-pill-list">
+                        {enabledApps.map((appName) => (
+                          <span className="access-app-pill" key={appName}>{appName}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="access-empty-value">No access</span>
+                    )}
                   </div>
 
-                  <div className="inventory-row-text">
-                    <div>POS: {Array.isArray(user.posModules) ? user.posModules.length : 0}</div>
-                    <div>CRM: {Array.isArray(user.crmModules) ? user.crmModules.length : 0}</div>
+                  <div className="inventory-row-text access-detail-stack" data-label="Roles">
+                    <div className="access-detail-line">
+                      <span className="access-detail-label">POS</span>
+                      <span className="access-detail-value">
+                        {user.isPosEnabled ? normalizeRole(user.posRole || user.role) : "-"}
+                      </span>
+                    </div>
+                    <div className="access-detail-line">
+                      <span className="access-detail-label">CRM</span>
+                      <span className="access-detail-value">
+                        {user.isCrmEnabled ? normalizeCrmRole(user.crmRole) : "-"}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="inventory-actions">
+                  <div className="inventory-row-text access-detail-stack" data-label="Modules">
+                    <div className="access-detail-line">
+                      <span className="access-detail-label">POS</span>
+                      <span className="access-detail-value">{posModuleCount}</span>
+                    </div>
+                    <div className="access-detail-line">
+                      <span className="access-detail-label">CRM</span>
+                      <span className="access-detail-value">{crmModuleCount}</span>
+                    </div>
+                  </div>
+
+                  <div className="inventory-actions access-row-actions">
                     <button
                       type="button"
-                      className="inventory-action-btn inventory-edit-action-btn"
+                      className="inventory-action-btn inventory-edit-action-btn access-manage-btn"
                       onClick={() => openEditor(user)}
                       aria-label="Manage access"
                       title={isCurrentUser ? "Manage your own access" : "Manage access"}
                     >
                       <AppIcon name="edit" />
+                      <span className="access-action-text">Manage access</span>
                     </button>
                   </div>
                 </div>
@@ -540,7 +586,7 @@ function AccessControl() {
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 

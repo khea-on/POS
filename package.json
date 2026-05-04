@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:cloud": "vite --mode cloud",
     "dev:local5012": "vite --mode local5012",
     "dev:iis5000": "vite --mode iis5000",
     "dev:iisroot": "vite --mode iisroot",

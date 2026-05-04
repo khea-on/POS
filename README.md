@@ -67,6 +67,22 @@ npm install
 npm run dev
 ```
 
+To run against `POSAPI_Cloud`, start the API first:
+
+```bash
+cd ../POSAPI_Cloud
+dotnet run
+```
+
+Then start this frontend in cloud mode:
+
+```bash
+cd ../POS
+npm run dev:cloud
+```
+
+The frontend runs on `http://localhost:5174` and proxies `/api` to `http://localhost:5022`.
+
 ## Production Build
 
 ```bash
