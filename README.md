@@ -88,3 +88,21 @@ The frontend runs on `http://localhost:5174` and proxies `/api` to `http://local
 ```bash
 npm run build
 ```
+
+## Vercel Deploy
+
+Use these settings:
+
+```text
+Root Directory: POS
+Build Command: npm run build
+Output Directory: dist
+```
+
+Production builds use:
+
+```text
+VITE_API_BASE_URL=https://posapi-cloud.onrender.com/api
+```
+
+`vercel.json` is included so React Router pages work after refresh.
