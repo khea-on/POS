@@ -51,3 +51,5 @@ cmd /c "if not exist C:\inetpub\wwwroot\POS mkdir C:\inetpub\wwwroot\POS && robo
 cd "C:\Users\ROG\Documents\ReactJs\POS"
 npm install
 npm run dev -- --host 0.0.0.0
+cd ../POS
+npm run dev:cloud
